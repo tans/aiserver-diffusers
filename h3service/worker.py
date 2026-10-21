@@ -182,7 +182,7 @@ def execute(row):
     cache = DATA / "conditioning" / conditioning_key(payload)
     cache.mkdir(parents=True, exist_ok=True)
     cond = cache / "condition.safetensors"
-    with gpu_admission(job_id), Monitor() as monitor:
+    with gpu_admission(job_id), Monitor(DEVICES) as monitor:
         update(job_id, status="running")
         with (cache / "publish.lock").open("a+") as lock:
             while True:
