@@ -70,3 +70,24 @@ Real generation benchmark:
 ```
 
 Benchmarks produce JSON, CSV and Markdown. A completed video is not automatically a visually or audibly usable video; quality review is recorded separately. Models, generated media and credentials are never committed.
+
+## Image reference
+
+Upload with `POST /v1/files` using multipart field `file`. Use its returned `file_id` in `input.references.images`:
+
+```json
+{
+  "model": "minimax-h3",
+  "task": "ref2av",
+  "input": {
+    "prompt": "Use <Picture 1> as the design reference. The boy waves to his mother in a bright living room.",
+    "references": {"images": ["<uploaded file_id>"]}
+  },
+  "parameters": {
+    "width": 512, "height": 320, "duration_seconds": 5.17,
+    "profile": "turbo4", "steps": 4, "seed": 20261021
+  }
+}
+```
+
+Reference generation currently uses exclusive TP6 and may wait for both three-card text groups to drain. It is limited to one image and this admitted profile/geometry.
