@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import fcntl
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -22,20 +23,22 @@ def database():
     DATA.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DATA / "jobs.sqlite3", timeout=30)
     con.row_factory = sqlite3.Row
-    con.execute("PRAGMA journal_mode=WAL")
-    con.executescript("""
-    CREATE TABLE IF NOT EXISTS jobs (
-      id TEXT PRIMARY KEY, model TEXT NOT NULL, task TEXT NOT NULL,
-      payload TEXT NOT NULL, status TEXT NOT NULL, priority INTEGER NOT NULL DEFAULT 0,
-      worker_id TEXT, cancel_requested INTEGER NOT NULL DEFAULT 0,
-      result TEXT, error_code TEXT, error_message TEXT,
-      created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
-    CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(status, priority DESC, created_at);
-    CREATE TABLE IF NOT EXISTS workers (
-      id TEXT PRIMARY KEY, pid INTEGER NOT NULL, devices TEXT NOT NULL,
-      status TEXT NOT NULL, job_id TEXT, heartbeat TEXT NOT NULL);
-    """)
     try:
+        with (DATA / "database-init.lock").open("a+") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            con.execute("PRAGMA journal_mode=WAL")
+            con.executescript("""
+            CREATE TABLE IF NOT EXISTS jobs (
+              id TEXT PRIMARY KEY, model TEXT NOT NULL, task TEXT NOT NULL,
+              payload TEXT NOT NULL, status TEXT NOT NULL, priority INTEGER NOT NULL DEFAULT 0,
+              worker_id TEXT, cancel_requested INTEGER NOT NULL DEFAULT 0,
+              result TEXT, error_code TEXT, error_message TEXT,
+              created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+            CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(status, priority DESC, created_at);
+            CREATE TABLE IF NOT EXISTS workers (
+              id TEXT PRIMARY KEY, pid INTEGER NOT NULL, devices TEXT NOT NULL,
+              status TEXT NOT NULL, job_id TEXT, heartbeat TEXT NOT NULL);
+            """)
         yield con
         con.commit()
     except BaseException:
