@@ -7,6 +7,7 @@ ConditionPathExists=/home/minixm/AIserver-diffusers/data/dual-tp3-verified
 Type=simple
 Slice=aiserver-diffusers-inference.slice
 OOMScoreAdjust=800
+OOMPolicy=kill
 WorkingDirectory=/home/minixm/AIserver-diffusers
 ExecStart=/home/minixm/AIserver-diffusers/.venv/bin/python -m h3service.worker
 Restart=on-failure

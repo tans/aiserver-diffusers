@@ -12,6 +12,7 @@ import threading
 import time
 import traceback
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .store import DATA, JOBS, ROOT, cancelled, claim, database, now, update
@@ -183,6 +184,9 @@ def execute(row):
     cache.mkdir(parents=True, exist_ok=True)
     cond = cache / "condition.safetensors"
     with gpu_admission(job_id), Monitor(DEVICES) as monitor:
+        admitted = time.perf_counter()
+        admission_wait = admitted - started
+        queue_wait = (datetime.now(timezone.utc) - datetime.fromisoformat(row["created_at"])).total_seconds()
         update(job_id, status="running")
         with (cache / "publish.lock").open("a+") as lock:
             while True:
@@ -223,10 +227,17 @@ def execute(row):
     check_cancel(job_id)
     times["export"] = stage(job_id, "export", ["ffmpeg", "-y", "-v", "error", "-i", str(output),
                     "-frames:v", "1", "-vf", "scale=360:-2", str(directory / "thumb.jpg")], directory, timeout=60)
-    report = {"engine": "diffusers", "stages_seconds": times, "total_seconds": time.perf_counter() - started,
+    inference_seconds = time.perf_counter() - admitted
+    report = {"engine": "diffusers", "stages_seconds": times, "total_seconds": inference_seconds,
+              "worker_wall_seconds": time.perf_counter() - started,
+              "admission_wait_seconds": admission_wait, "queue_wait_seconds": queue_wait,
+              "timing": {"stages_seconds": times, "total_seconds": inference_seconds},
               "conditioning_cache_hit": cache_hit, "worker_id": WORKER_ID, "devices": DEVICES,
               "profile": p.get("profile", "quality"), "actual_forwards": p["steps"], "requested_steps": p["steps"],
               "frames": p["frames"], "width": p["width"], "height": p["height"],
+              "model_evaluations": p["steps"], "requested_duration_seconds": p["duration_seconds"],
+              "seed": p["seed"], "workflow": "h3service.worker",
+              "gpu_memory": {"peak_memory_used_mib": max(metrics["peak_gpu_used_mib"].values(), default=0)},
               "actual_duration_seconds": p["frames"] / 24,
               "resources": {k: v for k, v in metrics.items() if k != "samples"},
               "media_revision": hashlib.sha256(output.read_bytes()).hexdigest(),
