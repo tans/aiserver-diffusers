@@ -64,8 +64,14 @@ def legacy_work_waiting():
         return False
     try:
         for status in ("running", "queued"):
-            with urllib.request.urlopen(base.rstrip("/") + "/v1/jobs?limit=1&status=" + status, timeout=2) as response:
-                if json.load(response)["total"]:
+            with urllib.request.urlopen(base.rstrip("/") + "/v1/jobs?limit=200&status=" + status, timeout=2) as response:
+                rows = json.load(response)["items"]
+            for row in rows:
+                stamp = datetime.fromisoformat(row["updated_at"])
+                age = (datetime.now(timezone.utc) - stamp).total_seconds()
+                # Old crash-era queued/running rows must not block admission
+                # indefinitely. Active legacy GPU work always retains its EX lock.
+                if 0 <= age <= 7200:
                     return True
     except (OSError, ValueError, KeyError):
         # The mandatory old GPU lock still governs admission if its API is down.
