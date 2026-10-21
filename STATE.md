@@ -18,3 +18,5 @@ Remaining: production mode switching, running cancellation and crash recovery, l
 Every source edit is committed/pushed on main. No test code is added. Benchmarks perform real local inference under the shared GPU lock and wait for existing service jobs.
 
 Kernel journal confirmed first-load host OOM affected original and new APIs before recovery. Inference is now under a shared 24 GiB cgroup memory cap, 22 GiB soft threshold and OOM eviction priority 800. Do not describe the earlier API as continuously available.
+
+Runtime acceptance passed: actual-forward SIGKILL followed by WORKER_RESTARTED and separate actual-forward user cancellation; API remained available, no GPU subprocess remained at checkpoints. Raw evidence reports/evidence/runtime-acceptance.json. Candidate units were stopped afterwards. Public TP6 two-job Turbo8 comparison is active.
