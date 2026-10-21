@@ -1,0 +1,41 @@
+{
+  "verified_at": "2026-10-21",
+  "source": "sudo journalctl -k --since 2026-10-21T10:00:00+08:00",
+  "event_time": "2026-10-21T12:07:38+08:00 to 12:07:40+08:00",
+  "constraint": "CONSTRAINT_MEMORY_POLICY",
+  "nodemask": [
+    0,
+    8
+  ],
+  "mems_allowed": "0,8,250-255",
+  "global_oom": true,
+  "selected_killed_processes": [
+    {
+      "pid": 462378,
+      "unit": "aiserver.service"
+    },
+    {
+      "pid": 471238,
+      "unit": "aiserver-diffusers-api.service"
+    },
+    {
+      "pid": 471239,
+      "unit": "aiserver-diffusers-worker-a.service"
+    },
+    {
+      "pid": 28415,
+      "unit": "vproxy.service"
+    },
+    {
+      "pid": 152561,
+      "unit": "ai8189-relay.service"
+    },
+    {
+      "pid": 476106,
+      "unit": "session-4136.scope"
+    }
+  ],
+  "correction": "Earlier post-event HTTP health checks showed recovery, not continuous API survival.",
+  "mitigation": "CPU temporary allocator trimming, serialized model staging, independent 24 GiB inference cgroup cap with 22 GiB soft threshold, OOMScoreAdjust 800 for inference; API remains outside the inference slice.",
+  "scope": "Selected kernel events, not a complete journal export"
+}
