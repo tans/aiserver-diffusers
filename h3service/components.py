@@ -8,6 +8,10 @@ import torch
 from diffusers import AutoencoderKLMiniMaxH3, AutoencoderKLMiniMaxH3Audio
 from safetensors.torch import load_file
 
+# The installed POWER9/cuDNN stack has no usable sm70 convolution engine.
+# Native torch convolution is supported; this setting is process-local.
+torch.backends.cudnn.enabled = False
+
 MODEL_ROOT = Path("/srv/models/lightx2v/h3/model_root")
 
 
