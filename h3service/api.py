@@ -199,7 +199,7 @@ def cancel(job_id: str):
     row = find_job(job_id)
     if row["status"] not in {"succeeded", "failed", "cancelled"}:
         with database() as con:
-            con.execute("UPDATE jobs SET cancel_requested=1, status=CASE WHEN status='queued' THEN 'cancelled' ELSE status END, updated_at=? WHERE id=?",
+            con.execute("UPDATE jobs SET cancel_requested=1, status=CASE WHEN status='queued' THEN 'cancelled' ELSE status END, updated_at=? WHERE id=? AND status IN ('queued','starting','running')",
                         (now(), job_id))
     return {"job_id": job_id, "status": find_job(job_id)["status"]}
 

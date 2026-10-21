@@ -108,6 +108,7 @@ def stage(job_id, name, command, directory, timeout=2400):
     started = time.perf_counter()
     env = os.environ.copy()
     env.update(OMP_NUM_THREADS="4", PYTHONUNBUFFERED="1", HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
+               PYTORCH_ALLOC_CONF="expandable_segments:True",
                LD_LIBRARY_PATH="/usr/local/cuda-12.4/lib64:" + env.get("LD_LIBRARY_PATH", ""))
     with (directory / f"{name}.log").open("ab", buffering=0) as log:
         process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
@@ -166,18 +167,31 @@ def execute(row):
     cond = cache / "condition.safetensors"
     with gpu_admission(job_id), Monitor() as monitor:
         update(job_id, status="running")
-        if not cond.exists():
-            temp = cache / (WORKER_ID + ".safetensors")
-            times["conditioning"] = stage(job_id, "conditioning", [str(PYTHON), "-m", "h3service.conditioning",
-                "--request", str(request), "--output", str(temp)], directory)
-            temp.replace(cond)
-            for suffix in (".report.json", ".references.json"):
-                if temp.with_suffix(suffix).exists():
-                    temp.with_suffix(suffix).replace(cond.with_suffix(suffix))
-            cache_hit = False
-        else:
-            times["conditioning"] = 0
-            cache_hit = True
+        with (cache / "publish.lock").open("a+") as lock:
+            while True:
+                check_cancel(job_id)
+                try:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    time.sleep(0.5)
+            complete = cache / "complete"
+            if not complete.exists() or not cond.exists():
+                complete.unlink(missing_ok=True)
+                temp = cache / (WORKER_ID + ".safetensors")
+                times["conditioning"] = stage(job_id, "conditioning", [str(PYTHON), "-m", "h3service.conditioning",
+                    "--request", str(request), "--output", str(temp)], directory)
+                for suffix in (".report.json", ".references.json"):
+                    target = cond.with_suffix(suffix)
+                    target.unlink(missing_ok=True)
+                    if temp.with_suffix(suffix).exists():
+                        temp.with_suffix(suffix).replace(target)
+                temp.replace(cond)
+                complete.write_text("complete\n")
+                cache_hit = False
+            else:
+                times["conditioning"] = 0
+                cache_hit = True
         latent = directory / "latents.safetensors"
         times["dit"] = stage(job_id, "dit", [str(PYTHON), "-m", "torch.distributed.run", "--standalone",
             f"--nproc_per_node={len(DEVICES)}", "-m", "h3service.denoise", "--condition", str(cond),
@@ -189,9 +203,8 @@ def execute(row):
         metrics = monitor.finish()
         (directory / "resources.json").write_text(json.dumps(metrics, indent=2))
     check_cancel(job_id)
-    ACTIVE["stage"] = "export"
-    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(output), "-frames:v", "1", "-vf", "scale=360:-2",
-                    str(directory / "thumb.jpg")], check=True, timeout=60)
+    times["export"] = stage(job_id, "export", ["ffmpeg", "-y", "-v", "error", "-i", str(output),
+                    "-frames:v", "1", "-vf", "scale=360:-2", str(directory / "thumb.jpg")], directory, timeout=60)
     report = {"engine": "diffusers", "stages_seconds": times, "total_seconds": time.perf_counter() - started,
               "conditioning_cache_hit": cache_hit, "worker_id": WORKER_ID, "devices": DEVICES,
               "actual_forwards": p["steps"], "requested_steps": p["steps"],
@@ -201,7 +214,13 @@ def execute(row):
               "media_revision": hashlib.sha256(output.read_bytes()).hexdigest(),
               "download_url": f"/v1/jobs/{job_id}/result"}
     (directory / "performance.json").write_text(json.dumps(report, indent=2))
-    update(job_id, status="succeeded", result=json.dumps(report))
+    check_cancel(job_id)
+    with database() as con:
+        changed = con.execute("UPDATE jobs SET status='succeeded',result=?,updated_at=? "
+                              "WHERE id=? AND status='running' AND cancel_requested=0",
+                              (json.dumps(report), now(), job_id)).rowcount
+        if not changed:
+            raise Cancelled()
 
 
 def main():

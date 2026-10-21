@@ -57,7 +57,7 @@ def decode(source, output):
         w.writeframes((samples[:, 0].T.numpy().clip(-1, 1) * 32767).astype("<i2").tobytes())
     t = time.perf_counter()
     count, height, width, _ = frames.shape
-    temp = output.with_name("output.encoding.mp4")
+    temp = output.with_name(output.stem + ".encoding.mp4")
     command = ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{width}x{height}",
                "-r", "24", "-i", "pipe:0", "-i", str(pcm), "-c:v", "libx264", "-crf", "17", "-preset", "veryfast",
                "-x264-params", "asm=0", "-threads", "8",
