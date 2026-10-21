@@ -1,0 +1,10 @@
+{
+  "active_window_seconds": 586.60516,
+  "active_window_start": "2026-10-21T05:23:56.167141+00:00",
+  "active_window_end": "2026-10-21T05:33:42.772301+00:00",
+  "active_window_videos_per_hour": 61.37007045761412,
+  "inference_mean_seconds": 113.14891512239993,
+  "inference_p50_seconds": 110.65061560149479,
+  "inference_p95_seconds": 139.48051283499808,
+  "note": "Active window excludes the initial old-service GPU wait, includes model staging, per-task model reload and decode. Ten jobs share one cached prompt and vary seeds; success does not establish human usable-video rate."
+}

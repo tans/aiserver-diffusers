@@ -4,6 +4,20 @@
   "actual_forwards": 4,
   "compute_dtype": "float16",
   "attention": "sdpa",
-  "verified": false,
-  "status": "experimental: local LoRA tensor layout and quality require validation"
+  "verified": true,
+  "verified_geometries": [
+    [
+      512,
+      320,
+      124
+    ]
+  ],
+  "verified_tasks": [
+    "ref2av"
+  ],
+  "verified_tp_sizes": [
+    6
+  ],
+  "row_projection_output_dtype": "float32",
+  "validation_note": "Two full reference seeds; six-card execution only."
 }
