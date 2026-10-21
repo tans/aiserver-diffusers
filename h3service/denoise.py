@@ -25,6 +25,7 @@ def main():
     p.add_argument("--steps", type=int, default=20)
     p.add_argument("--seed", type=int, default=20261021)
     p.add_argument("--attention", choices=["sdpa"], default="sdpa")
+    p.add_argument("--profile", choices=["quality", "turbo4", "turbo8"], default="quality")
     args = p.parse_args()
     torch.set_grad_enabled(False)
     torch.set_num_threads(4)
@@ -34,6 +35,11 @@ def main():
     device = torch.device("cuda", rank)
     started = time.perf_counter()
     model, report = load_transformer(args.checkpoint, device, args.attention)
+    if args.profile != "quality":
+        if args.steps != {"turbo4": 4, "turbo8": 8}[args.profile]:
+            raise ValueError("Turbo steps must match the selected adapter")
+        from .lora import fold_turbo
+        report["turbo"] = fold_turbo(model, args.profile)
     print(json.dumps({"event": "loaded", **report}), flush=True)
     from diffusers import MiniMaxH3Scheduler
     from diffusers.modular_pipelines.minimax_h3.modular_pipeline import MiniMaxH3ModularPipeline
