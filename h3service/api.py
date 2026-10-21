@@ -110,6 +110,9 @@ def submit(req: JobRequest):
         reject("UNSUPPORTED_INPUT", "Supported input fields are prompt and uploaded references")
     if req.options.keys() - {"priority"}:
         reject("UNSUPPORTED_OPTIONS", "Only priority is supported by this service")
+    references = req.input.get("references")
+    if references is not None and (not isinstance(references, dict) or references.keys() - {"images", "videos", "audios"}):
+        reject("INVALID_REFERENCE", "references must contain only images, videos and audios")
     prompt = req.input.get("prompt")
     if not isinstance(prompt, str) or not 1 <= len(prompt.strip()) <= 2000:
         reject("INVALID_PROMPT", "prompt must contain 1–2000 characters")
@@ -145,6 +148,7 @@ def submit(req: JobRequest):
     if type(seed) is not int or not 0 <= seed < 2**63:
         reject("INVALID_SEED", "seed must be a nonnegative 63-bit integer")
     inp = dict(req.input)
+    inp["prompt"] = prompt.strip()
     if task == "text_to_video" and inp.get("references") and any(inp["references"].values()):
         reject("UNSUPPORTED_REFERENCE", "Use ref2av for reference inputs")
     if task == "ref2av":
