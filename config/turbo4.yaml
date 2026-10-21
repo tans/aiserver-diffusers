@@ -19,5 +19,7 @@
     6
   ],
   "row_projection_output_dtype": "float32",
-  "validation_note": "Two full reference seeds; six-card execution only."
+  "validation_note": "Two full reference seeds; six-card execution only.",
+  "default_tp_size": 6,
+  "configuration_role": "Descriptive verified recipe; runtime admission and selected mode use data/verified-capabilities.json."
 }

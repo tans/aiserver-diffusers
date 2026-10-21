@@ -9,7 +9,7 @@
     6,
     3
   ],
-  "default_tp_size": 6,
+  "default_tp_size": 3,
   "verified": true,
   "cpu_offload": false,
   "verified_geometries": [
@@ -27,5 +27,6 @@
     3
   ],
   "row_projection_output_dtype": "float32",
-  "validation_note": "Two different-prompt cold dual-TP3 twenty-forward tasks passed."
+  "validation_note": "Two different-prompt cold dual-TP3 twenty-forward tasks passed.",
+  "configuration_role": "Descriptive verified recipe; runtime admission and selected mode use data/verified-capabilities.json."
 }
