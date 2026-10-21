@@ -122,6 +122,15 @@ def _replace(root, name, value):
 
 
 def load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
+    from .memory import model_staging_lock
+    with model_staging_lock(dist.get_rank() == 0):
+        dist.barrier()
+        result = _load_transformer(checkpoint, device, attention)
+        dist.barrier()
+        return result
+
+
+def _load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
     from diffusers.models.transformers.transformer_minimax_h3 import (
         MiniMaxH3Transformer3DModel, MiniMaxH3Attention,
     )
