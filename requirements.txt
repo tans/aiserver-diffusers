@@ -1,0 +1,7 @@
+# POWER9 CUDA torch 2.10.0 is reused read-only from the audited host stack.
+diffusers==0.41.0
+transformers==5.20.1
+accelerate==1.15.0
+safetensors==0.8.0
+fastapi==0.142.2
+uvicorn==0.54.0
