@@ -45,7 +45,7 @@ def main():
     prompt = condition["prompt_embeds"].to(torch.float16)
     if prompt.ndim == 2:
         prompt = prompt[None]
-    tags = condition.get("text_token_tags", torch.ones(prompt.shape[1], device=device, dtype=torch.long))
+    tags = condition.get("text_token_tags", torch.ones(prompt.shape[1], dtype=torch.long)).cpu()
     forwards = []
     current = [0.0]
     def before(module, inputs):
