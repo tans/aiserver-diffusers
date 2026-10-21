@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import os
+import ctypes
+import gc
 import time
 import types
 from pathlib import Path
@@ -133,6 +135,8 @@ def load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
         "qk_norm_eps", "final_norm_eps"}}
     with init_empty_weights():
         model = MiniMaxH3Transformer3DModel(**args)
+    gc.collect()
+    ctypes.CDLL("libc.so.6").malloc_trim(0)
     model.time_proj = nn.Identity()
     model.time_embedder = nn.Identity()
     model.time_embedder.register_buffer("dtype_reference", torch.zeros((), device=device, dtype=torch.float32))
@@ -200,6 +204,9 @@ def load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
                 fp32 = ("adaln_proj" in key or key.startswith(("context_embedder.", "norm_out.", "proj_in.", "audio_proj_in.", "proj_out.", "audio_proj_out.")) or ".norm" in key or "final_norm" in key)
                 dtype = torch.float32 if fp32 else torch.float16
                 _replace(model, key, nn.Parameter(tensor.to(device=device, dtype=dtype), requires_grad=False))
+        del tensor, part
+        gc.collect()
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
     for module in model.modules():
         if isinstance(module, MiniMaxH3Attention):
             module.heads //= world

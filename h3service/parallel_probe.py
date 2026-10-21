@@ -22,6 +22,7 @@ def main():
     p.add_argument("--steps", type=int, default=20)
     p.add_argument("--width", type=int, default=512)
     p.add_argument("--height", type=int, default=320)
+    p.add_argument("--stagger-load", action="store_true")
     a = p.parse_args()
     directory = Path(a.output_dir).resolve()
     directory.mkdir(parents=True, exist_ok=True)
@@ -42,6 +43,17 @@ def main():
                     with (directory / (label + '.log')).open('wb') as log:
                         process = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
                     processes.append((label, process, env))
+                    if a.stagger_load and label == 'a':
+                        deadline = time.monotonic() + 300
+                        while time.monotonic() < deadline:
+                            if process.poll() is not None:
+                                raise RuntimeError('Worker A failed during staged loading')
+                            loaded = (directory / 'a.log').read_text(errors='replace').count('"event": "loaded"')
+                            if loaded >= 3:
+                                break
+                            time.sleep(0.5)
+                        else:
+                            raise TimeoutError('Worker A load did not finish')
                 deadline = time.monotonic() + 1800
                 while any(process.poll() is None for label, process, env in processes):
                     if any(process.poll() not in (None, 0) for label, process, env in processes):
