@@ -1,5 +1,7 @@
 # Compatibility and isolation
 
+Reference quality correction: public reference admission is currently withheld (issue #2). Turbo4 seed 20261030 passed finite/container checks but failed full-size visual review; the mixed workload was aborted. Historical successful executions below do not establish usable-video quality.
+
 ## Runtime pins
 
 Diffusers 0.41.0 corresponds to upstream tag commit `086bf9578c0f4acbc66e48cd1e7cc26befd9e10f`. Transformers 5.20.1, Accelerate 1.15.0, Safetensors 0.8.0, FastAPI 0.142.2 and Uvicorn 0.54.0 are installed into the independent venv. See requirements.txt and the host's data/environment-packages.json for observed dependencies.

@@ -1,5 +1,7 @@
 # Benchmark results — active validation
 
+Reference quality correction: public reference admission is currently withheld (issue #2). Turbo4 seed 20261030 passed finite/container checks but failed full-size visual review; the mixed workload was aborted. Historical successful executions below do not establish usable-video quality.
+
 ## Native Diffusers baseline
 
 | Probe | Result | Measured time | Memory |

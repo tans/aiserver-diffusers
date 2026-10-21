@@ -1,5 +1,7 @@
 # Known limitations — 2026-10-21
 
+Reference quality correction: public reference admission is currently withheld (issue #2). Turbo4 seed 20261030 passed finite/container checks but failed full-size visual review; the mixed workload was aborted. Historical successful executions below do not establish usable-video quality.
+
 - Public admission is 512×320, 124 frames: text `quality` (20+ actual forwards), text `turbo8` (eight), one-image `ref2av / turbo4` (four). Complete higher-resolution Turbo8 acceptance is pending. Video/audio references, image generation and super resolution are unsupported.
 - Current public deployment uses dual TP3 for eligible small text tasks; reference tasks use worker A with exclusive TP6. Ten consecutive Turbo8 jobs and two different-prompt cold quality jobs passed. The twenty-job mixed public workload is active. These are acceptance windows, not long-term production soak evidence.
 - Observed short-window cached-prompt throughput is 61.37 videos/hour for ten dual-TP3 tasks, versus 34.16/hour for two serial TP6 tasks. Sample sizes differ. Whole-batch wall throughput including initial legacy-service waiting was 40.98 and 28.95/hour. No one-hour or human usable-video-rate claim is made.

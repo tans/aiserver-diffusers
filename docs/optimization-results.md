@@ -1,5 +1,7 @@
 # Optimization results — 2026-10-21
 
+Reference quality correction: public reference admission is currently withheld (issue #2). Turbo4 seed 20261030 passed finite/container checks but failed full-size visual review; the mixed workload was aborted. Historical successful executions below do not establish usable-video quality.
+
 ## Accepted measurements
 
 - Native Diffusers TP6, 512×320/124f/20 actual forwards: 86.27 s denoise, 111.32 s DiT process. Separate native video/audio decode and MP4: 23.91 s.
