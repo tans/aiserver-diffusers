@@ -242,6 +242,7 @@ def execute(row):
 
 
 def main():
+    global DEVICES
     if DEVICES not in ([0, 1, 2, 3, 4, 5], [0, 1, 2], [3, 4, 5]):
         raise ValueError("Only audited full or three-card NVLink groups are permitted")
     if len(DEVICES) == 3:
