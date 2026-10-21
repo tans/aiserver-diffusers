@@ -7,6 +7,7 @@ No LightX2V package is imported or executed.
 from __future__ import annotations
 
 import json
+import os
 import time
 import types
 from pathlib import Path
@@ -210,6 +211,17 @@ def load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
     if any(p.is_meta for p in model.parameters()):
         raise ValueError("Unloaded meta parameters remain")
     model.eval()
+    if os.getenv("H3_TRACE_FINITE") == "1":
+        def trace(name):
+            def hook(module, inputs, output):
+                values = output if isinstance(output, tuple) else (output,)
+                for value in values:
+                    if torch.is_tensor(value) and not bool(torch.isfinite(value).all()):
+                        raise FloatingPointError(f"First non-finite output at {name} ({type(module).__name__})")
+            return hook
+        for name, module in model.named_modules():
+            if name:
+                module.register_forward_hook(trace(name))
     return model, {"load_seconds": time.perf_counter() - started,
                    "tp_size": world, "rank": rank, "checkpoint": str(root),
                    "local_parameter_bytes": sum(p.numel() * p.element_size() for p in model.parameters()),
