@@ -11,6 +11,31 @@ import urllib.request
 from pathlib import Path
 
 
+def write_csv(rows, path):
+    """Keep detailed engine measurements beside caller-observed wall latency."""
+    columns = ["index", "job_id", "task", "status", "profile", "width", "height", "frames", "seed",
+               "actual_forwards", "conditioning_cache_hit", "wall_seconds", "queue_wait_seconds",
+               "admission_wait_seconds", "inference_seconds", "conditioning_seconds", "dit_seconds",
+               "decode_seconds", "export_seconds", "peak_gpu_used_mib", "peak_process_tree_pss_bytes",
+               "output_sha256"]
+    with Path(path).open("w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=columns)
+        writer.writeheader()
+        for row in rows:
+            job = row["job"]
+            result = job.get("result") or {}
+            stages = result.get("stages_seconds", {})
+            record = {key: result.get(key, "") for key in columns}
+            record.update(index=row["index"], job_id=job.get("id", ""), task=job.get("task", ""),
+                          status=job["status"], wall_seconds=row["wall_seconds"],
+                          inference_seconds=result.get("total_seconds", ""),
+                          peak_gpu_used_mib=result.get("gpu_memory", {}).get("peak_memory_used_mib", ""),
+                          peak_process_tree_pss_bytes=result.get("resources", {}).get("peak_process_tree_pss_bytes", ""),
+                          output_sha256=result.get("media_revision", ""))
+            record.update({name + "_seconds": stages.get(name, "") for name in ("conditioning", "dit", "decode", "export")})
+            writer.writerow(record)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--url", default="http://127.0.0.1:8190")
@@ -98,10 +123,7 @@ def main():
     output = Path(a.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.with_suffix(".json").write_text(json.dumps({"configuration": vars(a), "summary": summary, "runs": rows}, indent=2))
-    with output.with_suffix(".csv").open("w") as f:
-        writer = csv.writer(f)
-        writer.writerow(["index", "job_id", "status", "wall_seconds"])
-        writer.writerows((r["index"], r["job"].get("id"), r["job"]["status"], r["wall_seconds"]) for r in rows)
+    write_csv(rows, output.with_suffix(".csv"))
     output.with_suffix(".md").write_text("# Diffusers benchmark\n\n```json\n" + json.dumps(summary, indent=2) + "\n```\n")
     print(json.dumps(summary, indent=2))
 
