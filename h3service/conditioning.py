@@ -22,6 +22,24 @@ from transformers import AutoConfig, AutoProcessor, AutoTokenizer, Qwen3VLForCon
 from .components import MODEL_ROOT, video_vae, audio_vae
 
 
+def bounded_sdpa(module, query, key, value, attention_mask, dropout=0.0, scaling=None, **kwargs):
+    """Full-context SDPA in query chunks, preserving global causal positions."""
+    from transformers.integrations.sdpa_attention import sdpa_attention_forward
+    if query.shape[-2] != key.shape[-2] or dropout:
+        raise ValueError("Conditioner attention expects a full, inference-only prefill")
+    output = torch.empty_like(query.transpose(1, 2))
+    for start in range(0, query.shape[-2], 128):
+        q = query[:, :, start:start + 128]
+        mask = attention_mask[..., start:start + q.shape[-2], :] if attention_mask is not None else None
+        if mask is None and getattr(module, "is_causal", True):
+            positions = torch.arange(start, start + q.shape[-2], device=q.device)
+            mask = torch.arange(key.shape[-2], device=q.device)[None, :] <= positions[:, None]
+        part, _ = sdpa_attention_forward(module, q, key, value, mask, dropout=0.0, scaling=scaling,
+                                         is_causal=False)
+        output[:, start:start + q.shape[-2]] = part
+    return output, None
+
+
 class PatchifyLinear(torch.nn.Module):
     """Exactly one convolution window per Qwen vision patch, computed as GEMM."""
     def __init__(self, conv):
@@ -61,6 +79,10 @@ def encode(request, output):
     # Native POWER9 Conv3d without cuDNN is pathological for this huge-batch,
     # single-window patchify operation. GEMM keeps every original input pixel.
     te.model.visual.patch_embed.proj = PatchifyLinear(te.model.visual.patch_embed.proj)
+    from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS
+    ALL_ATTENTION_FUNCTIONS.register("h3_bounded_sdpa", bounded_sdpa)
+    te.model.language_model.config._attn_implementation = "h3_bounded_sdpa"
+    te.model.visual.config._attn_implementation = "h3_bounded_sdpa"
     print(json.dumps({"event": "te_loaded", "seconds": time.perf_counter() - loaded}), flush=True)
     pipe.update_components(text_encoder=te,
                            tokenizer=AutoTokenizer.from_pretrained(MODEL_ROOT / "tokenizer", local_files_only=True),

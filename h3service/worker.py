@@ -247,7 +247,11 @@ def main():
             try:
                 execute(row)
             except Cancelled:
-                update(row["id"], status="cancelled")
+                if STOP.is_set() and not cancelled(row["id"]):
+                    update(row["id"], status="failed", error_code="WORKER_STOPPED",
+                           error_message="Worker stopped before completion")
+                else:
+                    update(row["id"], status="cancelled")
             except BaseException as exc:
                 (JOBS / row["id"]).mkdir(parents=True, exist_ok=True)
                 (JOBS / row["id"] / "error.log").write_text(traceback.format_exc())
