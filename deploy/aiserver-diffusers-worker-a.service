@@ -1,0 +1,21 @@
+[Unit]
+Description=Independent Diffusers H3 worker A
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/minixm/AIserver-diffusers
+ExecStart=/home/minixm/AIserver-diffusers/.venv/bin/python -m h3service.worker
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=25
+Environment=CUDA_VISIBLE_DEVICES=0,1,2,3,4,5
+Environment=H3_WORKER_ID=worker-a
+Environment=LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64
+Environment=PYTHONUNBUFFERED=1
+Environment=OMP_NUM_THREADS=4
+UMask=0077
+
+[Install]
+WantedBy=default.target

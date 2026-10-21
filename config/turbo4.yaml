@@ -1,0 +1,9 @@
+{
+  "name": "turbo4",
+  "engine": "diffusers",
+  "actual_forwards": 4,
+  "compute_dtype": "float16",
+  "attention": "sdpa",
+  "verified": false,
+  "status": "experimental: local LoRA tensor layout and quality require validation"
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=Independent Diffusers H3 API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/minixm/AIserver-diffusers
+ExecStart=/home/minixm/AIserver-diffusers/.venv/bin/python -m uvicorn h3service.api:app --host 127.0.0.1 --port 8190
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+UMask=0077
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,12 @@
+{
+  "name": "quality",
+  "engine": "diffusers",
+  "compute_dtype": "float16",
+  "sensitive_dtype": "float32",
+  "attention": "sdpa",
+  "actual_forwards": 20,
+  "candidate_tp_sizes": [6, 3],
+  "default_tp_size": 6,
+  "verified": false,
+  "cpu_offload": false
+}
