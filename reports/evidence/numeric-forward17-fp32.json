@@ -1,0 +1,9 @@
+{
+  "load_seconds": 18.32745494300616,
+  "tp_size": 3,
+  "rank": 0,
+  "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+  "local_parameter_bytes": 14035348992,
+  "attention": "sdpa",
+  "checkpoint_keys": 635
+}

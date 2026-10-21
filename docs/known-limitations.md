@@ -16,4 +16,4 @@
 - No OS reboot has been performed. Process restart recovery does not establish real reboot recovery.
 - Full high-resolution, ten-job and twenty-job mixed workloads remain outstanding. Issue #1 remains open.
 
-- Cold dual-worker acceptance with a second prompt exposed a non-finite prediction at forward 17. The finite gate correctly failed that job. A captured-forward replay is diagnosing the FFN output projection; dual public admission stays disabled until corrected and revalidated.
+- The first cold dual-worker pair failed one prompt at forward 17. A captured-forward replay reproduced overflow at block 45 FFN output projection. Requesting FP32 row-projection output before TP reduction fixed that exact forward and both complete 20-step cold tasks subsequently passed. Public dual admission remains gated on the sustained Turbo8 batch.
