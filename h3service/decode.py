@@ -32,6 +32,9 @@ def decode(source, output, vae_tile_size=256):
     mean = torch.tensor(vae.config.latents_mean, device=device).view(1, -1, 1, 1, 1)
     std = torch.tensor(vae.config.latents_std, device=device).view(1, -1, 1, 1, 1)
     raw = vae.decode((x * std + mean).to(vae.dtype), return_dict=False)[0].float().cpu()
+    if not bool(torch.isfinite(raw).all()):
+        raise FloatingPointError("Non-finite raw video VAE output before pixel clamping")
+    raw_range = {"min": float(raw.min()), "max": float(raw.max())}
     pixels = (raw * torch.tensor((0.229, 0.224, 0.225)).view(1, 3, 1, 1, 1)
               + torch.tensor((0.485, 0.456, 0.406)).view(1, 3, 1, 1, 1)).clamp(0, 1)
     if not bool(torch.isfinite(pixels).all()):
@@ -70,6 +73,7 @@ def decode(source, output, vae_tile_size=256):
     pcm.unlink()
     times["encode_mp4"] = time.perf_counter() - t
     report = {"engine": "diffusers", "video_latents_denormalized": True, "vae_tile_size": vae_tile_size,
+              "video_raw_finite": True, "video_raw_range": raw_range,
               "frames": count, "width": width, "height": height, "fps": 24,
               "audio_samples": samples.shape[-1], "sample_rate": 32000,
               "timing_seconds": times, "total_seconds": time.perf_counter() - started,
