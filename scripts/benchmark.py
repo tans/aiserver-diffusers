@@ -37,6 +37,16 @@ def main():
             headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=30) as response:
             return json.load(response)
+    ready_deadline = time.monotonic() + 30
+    while True:
+        try:
+            if request("/ready")["status"] == "ready":
+                break
+        except (OSError, ValueError, KeyError):
+            pass
+        if time.monotonic() >= ready_deadline:
+            p.error("API did not become ready before benchmark submission")
+        time.sleep(0.2)
     def run(index):
         start = time.monotonic()
         is_ref = bool(a.reference_id) and (not a.mixed or index % 10 == 9)
