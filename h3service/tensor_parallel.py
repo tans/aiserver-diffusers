@@ -134,6 +134,7 @@ def load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
         model = MiniMaxH3Transformer3DModel(**args)
     model.time_proj = nn.Identity()
     model.time_embedder = nn.Identity()
+    model.time_embedder.register_buffer("dtype_reference", torch.zeros((), device=device, dtype=torch.float32))
     model.rope = type(model.rope)(config["rope_freq_dim"], config["rope_theta"]).to(device)
     modes = {}
     for name, module in list(model.named_modules()):
