@@ -1,0 +1,9 @@
+AIserver Diffusers
+
+Uses Hugging Face Diffusers MiniMax H3 modules under Apache License 2.0.
+Upstream: https://github.com/huggingface/diffusers
+Pinned release: 0.41.0, upstream tag commit 086bf9578c0f4acbc66e48cd1e7cc26befd9e10f.
+
+Independent compatibility adapters implement local checkpoint loading, AdaLN
+curve interpolation, POWER9/V100 numerical handling and tensor parallelism.
+No LightX2V inference implementation is imported by this service.
