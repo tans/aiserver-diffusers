@@ -20,7 +20,8 @@ from .telemetry import Monitor
 STOP = threading.Event()
 ACTIVE = {"job": None, "process": None, "stage": "idle"}
 WORKER_ID = os.getenv("H3_WORKER_ID", "worker-a")
-DEVICES = [int(x) for x in os.getenv("CUDA_VISIBLE_DEVICES", "0,1,2,3,4,5").split(",")]
+GROUP_DEVICES = [int(x) for x in os.getenv("CUDA_VISIBLE_DEVICES", "0,1,2,3,4,5").split(",")]
+DEVICES = list(GROUP_DEVICES)
 PYTHON = ROOT / ".venv/bin/python"
 
 
@@ -45,11 +46,20 @@ def check_cancel(job_id):
         raise Cancelled()
 
 
+def tp3_eligible(row):
+    cap = json.loads((DATA / "verified-capabilities.json").read_text())
+    p = json.loads(row["payload"])["parameters"]
+    return (cap.get("dual_tp3_verified") and row["task"] == "text_to_video"
+            and [p["width"], p["height"], p["frames"]] in cap.get("dual_tp3_geometries", [])
+            and p.get("profile", "quality") in cap.get("dual_tp3_profiles", []))
+
+
 @contextmanager
 def gpu_admission(job_id):
     locks = DATA / "locks"
     locks.mkdir(parents=True, exist_ok=True)
-    paths = [Path(os.getenv("H3_SHARED_GPU_LOCK", "/home/minixm/AIserver/data/gpu0-5.lock")),
+    paths = [locks / "admission-intent.lock",
+             Path(os.getenv("H3_SHARED_GPU_LOCK", "/home/minixm/AIserver/data/gpu0-5.lock")),
              *[locks / f"gpu-{i}.lock" for i in sorted(DEVICES)]]
     handles = []
     started = time.monotonic()
@@ -57,7 +67,7 @@ def gpu_admission(job_id):
         for i, path in enumerate(paths):
             handle = path.open("a+")
             handles.append(handle)
-            mode = fcntl.LOCK_SH if i == 0 and len(DEVICES) < 6 else fcntl.LOCK_EX
+            mode = fcntl.LOCK_SH if i <= 1 and len(DEVICES) < 6 else fcntl.LOCK_EX
             while True:
                 check_cancel(job_id)
                 if time.monotonic() - started > 7200:
@@ -67,6 +77,9 @@ def gpu_admission(job_id):
                     break
                 except BlockingIOError:
                     time.sleep(0.5)
+        # Once global admission succeeds, release intent. A waiting TP6 task
+        # can then reserve admission while existing TP3 work drains.
+        fcntl.flock(handles[0], fcntl.LOCK_UN)
         # Reject unrelated GPU workloads that do not participate in the lock.
         usage = subprocess.check_output(["nvidia-smi", "--query-gpu=index,memory.used", "--format=csv,noheader,nounits"],
                                         text=True, timeout=10)
@@ -108,6 +121,7 @@ def stage(job_id, name, command, directory, timeout=2400):
     started = time.perf_counter()
     env = os.environ.copy()
     env.update(OMP_NUM_THREADS="4", PYTHONUNBUFFERED="1", HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
+               CUDA_VISIBLE_DEVICES=",".join(str(i) for i in DEVICES),
                PYTORCH_ALLOC_CONF="expandable_segments:True",
                LD_LIBRARY_PATH="/usr/local/cuda-12.4/lib64:" + env.get("LD_LIBRARY_PATH", ""))
     with (directory / f"{name}.log").open("ab", buffering=0) as log:
@@ -152,6 +166,9 @@ def conditioning_key(payload):
 
 
 def execute(row):
+    global DEVICES
+    DEVICES = ([0, 1, 2, 3, 4, 5] if GROUP_DEVICES == [0, 1, 2] and not tp3_eligible(row)
+               else list(GROUP_DEVICES))
     job_id = row["id"]
     payload = json.loads(row["payload"])
     p = payload["parameters"]
@@ -240,7 +257,7 @@ def main():
                         "WHERE worker_id=? AND status IN ('starting','running')", (now(), WORKER_ID))
         threading.Thread(target=heartbeat, daemon=True).start()
         while not STOP.is_set():
-            row = claim(WORKER_ID)
+            row = claim(WORKER_ID, tp3_eligible if GROUP_DEVICES == [3, 4, 5] else None)
             if not row:
                 STOP.wait(1)
                 continue
@@ -258,6 +275,7 @@ def main():
                 update(row["id"], status="failed", error_code="INFERENCE_FAILED",
                        error_message=f"Diffusers {ACTIVE['stage']} stage failed")
             finally:
+                DEVICES = list(GROUP_DEVICES)
                 ACTIVE.update(job=None, process=None, stage="idle")
 
 

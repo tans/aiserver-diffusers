@@ -55,11 +55,12 @@ def update(job_id, **values):
                     [*values.values(), job_id])
 
 
-def claim(worker_id):
+def claim(worker_id, eligible=None):
     with database() as con:
         con.execute("BEGIN IMMEDIATE")
-        row = con.execute("SELECT * FROM jobs WHERE status='queued' AND cancel_requested=0 "
-                          "ORDER BY priority DESC, created_at LIMIT 1").fetchone()
+        rows = con.execute("SELECT * FROM jobs WHERE status='queued' AND cancel_requested=0 "
+                           "ORDER BY priority DESC, created_at").fetchall()
+        row = next((row for row in rows if eligible is None or eligible(row)), None)
         if row:
             con.execute("UPDATE jobs SET status='starting', worker_id=?, updated_at=? WHERE id=?",
                         (worker_id, now(), row["id"]))
