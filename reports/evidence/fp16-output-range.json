@@ -1,0 +1,37 @@
+{
+  "device": "V100 sm70",
+  "torch": "2.10.0",
+  "input_dtype": "float16",
+  "input_a": [
+    [
+      10000,
+      10000
+    ],
+    [
+      10000,
+      10000
+    ]
+  ],
+  "input_b": [
+    [
+      10000,
+      10000
+    ],
+    [
+      10000,
+      10000
+    ]
+  ],
+  "ordinary_half_mm_output": "inf in all elements",
+  "mm_out_dtype_float32_output": [
+    [
+      200000000,
+      200000000
+    ],
+    [
+      200000000,
+      200000000
+    ]
+  ],
+  "scope": "Hardware/operator range demonstration; not proof of the captured model failure cause"
+}
