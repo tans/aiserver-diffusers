@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import gc
+import faulthandler
 import hashlib
 import json
 import os
@@ -19,6 +20,22 @@ from safetensors.torch import save_file
 from transformers import AutoConfig, AutoProcessor, AutoTokenizer, Qwen3VLForConditionalGeneration
 
 from .components import MODEL_ROOT, video_vae, audio_vae
+
+
+class PatchifyLinear(torch.nn.Module):
+    """Exactly one convolution window per Qwen vision patch, computed as GEMM."""
+    def __init__(self, conv):
+        super().__init__()
+        if conv.kernel_size != conv.stride or any(conv.padding) or conv.groups != 1 or any(d != 1 for d in conv.dilation):
+            raise ValueError("Qwen patch convolution does not have the audited one-window layout")
+        if conv.weight.device.type != "cuda":
+            raise ValueError("Vision patch weights must be GPU resident")
+        self.weight, self.bias = conv.weight, conv.bias
+
+    def forward(self, x):
+        if tuple(x.shape[2:]) != tuple(self.weight.shape[2:]):
+            raise ValueError("Expected exactly one vision patch per batch entry")
+        return torch.nn.functional.linear(x.flatten(1), self.weight.flatten(1), self.bias)[:, :, None, None, None]
 
 
 def encode(request, output):
@@ -41,6 +58,10 @@ def encode(request, output):
         MODEL_ROOT / "text_encoder", config=config, dtype=torch.float16,
         local_files_only=True, device_map="balanced", max_memory=memory,
         attn_implementation="sdpa", low_cpu_mem_usage=True)
+    # Native POWER9 Conv3d without cuDNN is pathological for this huge-batch,
+    # single-window patchify operation. GEMM keeps every original input pixel.
+    te.model.visual.patch_embed.proj = PatchifyLinear(te.model.visual.patch_embed.proj)
+    print(json.dumps({"event": "te_loaded", "seconds": time.perf_counter() - loaded}), flush=True)
     pipe.update_components(text_encoder=te,
                            tokenizer=AutoTokenizer.from_pretrained(MODEL_ROOT / "tokenizer", local_files_only=True),
                            processor=AutoProcessor.from_pretrained(MODEL_ROOT / "processor", local_files_only=True))
@@ -57,8 +78,11 @@ def encode(request, output):
               "te_device_map": {k: str(v) for k, v in te.hf_device_map.items()},
               "te_layers": 51, "engine": "diffusers"}
     encoding = time.perf_counter()
+    faulthandler.dump_traceback_later(120, repeat=True)
     state = pipe(prompt=inp["prompt"], references=references, width=params["width"], height=params["height"],
                  num_frames=params["frames"], output=None)
+    faulthandler.cancel_dump_traceback_later()
+    print(json.dumps({"event": "text_encoded", "seconds": time.perf_counter() - encoding}), flush=True)
     report["text_encode_seconds"] = time.perf_counter() - encoding
     tensors = {"prompt_embeds": state.get("prompt_embeds").detach().cpu().contiguous(),
                "text_token_tags": state.get("text_token_tags").detach().cpu().contiguous()}
