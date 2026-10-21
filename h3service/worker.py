@@ -196,7 +196,8 @@ def execute(row):
         times["dit"] = stage(job_id, "dit", [str(PYTHON), "-m", "torch.distributed.run", "--standalone",
             f"--nproc_per_node={len(DEVICES)}", "-m", "h3service.denoise", "--condition", str(cond),
             "--output", str(latent), "--width", str(p["width"]), "--height", str(p["height"]),
-            "--frames", str(p["frames"]), "--steps", str(p["steps"]), "--seed", str(p["seed"])], directory)
+            "--frames", str(p["frames"]), "--steps", str(p["steps"]), "--seed", str(p["seed"]),
+            "--profile", p.get("profile", "quality")], directory)
         output = directory / "output.mp4"
         times["decode"] = stage(job_id, "decode", [str(PYTHON), "-m", "h3service.decode",
             "--latents", str(latent), "--output", str(output)], directory)
@@ -207,7 +208,7 @@ def execute(row):
                     "-frames:v", "1", "-vf", "scale=360:-2", str(directory / "thumb.jpg")], directory, timeout=60)
     report = {"engine": "diffusers", "stages_seconds": times, "total_seconds": time.perf_counter() - started,
               "conditioning_cache_hit": cache_hit, "worker_id": WORKER_ID, "devices": DEVICES,
-              "actual_forwards": p["steps"], "requested_steps": p["steps"],
+              "profile": p.get("profile", "quality"), "actual_forwards": p["steps"], "requested_steps": p["steps"],
               "frames": p["frames"], "width": p["width"], "height": p["height"],
               "actual_duration_seconds": p["frames"] / 24,
               "resources": {k: v for k, v in metrics.items() if k != "samples"},

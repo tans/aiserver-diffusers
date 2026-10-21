@@ -119,13 +119,18 @@ def submit(req: JobRequest):
         reject("INVALID_DIMENSIONS", "Dimensions must be positive multiples of 32; area <= 983040")
     if (width, height, frames) not in [tuple(x) for x in cap.get("geometries", [])]:
         reject("UNVERIFIED_GEOMETRY", "Requested geometry has not passed Diffusers admission", 422)
-    steps = p.get("steps", 20)
+    profile = p.get("profile", "quality")
+    if profile not in ("quality", "turbo8") or profile not in cap.get("profiles", []):
+        reject("UNVERIFIED_PROFILE", "Requested profile has not passed admission")
+    if profile != "quality" and task not in cap.get(profile + "_tasks", []):
+        reject("UNVERIFIED_PROFILE", "Requested profile has not passed this workflow")
+    steps = p.get("steps", 8 if profile == "turbo8" else 20)
     if type(steps) is not int or not 4 <= steps <= 64:
         reject("INVALID_STEPS", "steps must be an integer between 4 and 64")
     if p.get("loras"):
         reject("UNVERIFIED_LORA", "LoRA support has not passed verification")
-    if steps < 20:
-        reject("UNVERIFIED_PROFILE", "Few-step generation requires a verified Turbo profile")
+    if (profile == "quality" and steps < 20) or (profile == "turbo8" and steps != 8):
+        reject("UNVERIFIED_PROFILE", "quality requires >=20 forwards; turbo8 requires exactly 8")
     seed = p.get("seed", secrets.randbelow(2**31))
     if type(seed) is not int or not 0 <= seed < 2**63:
         reject("INVALID_SEED", "seed must be a nonnegative 63-bit integer")
@@ -153,7 +158,7 @@ def submit(req: JobRequest):
     if type(priority) is not int or not 0 <= priority <= 10:
         reject("INVALID_PRIORITY", "priority must be 0–10")
     storage_admission()
-    p.update(width=width, height=height, frames=frames, steps=steps, seed=seed)
+    p.update(width=width, height=height, frames=frames, steps=steps, seed=seed, profile=profile)
     payload = {"model": req.model, "task": task, "input": inp, "parameters": p, "options": req.options}
     job_id, stamp = "job_" + uuid.uuid4().hex, now()
     with database() as con:

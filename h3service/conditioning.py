@@ -52,7 +52,7 @@ def encode(request, output):
     config.text_config.num_hidden_layers = 51
     count = torch.cuda.device_count()
     memory = {i: "10GiB" for i in range(count)}
-    memory["cpu"] = "36GiB"
+    memory["cpu"] = "12GiB"
     loaded = time.perf_counter()
     te = Qwen3VLForConditionalGeneration.from_pretrained(
         MODEL_ROOT / "text_encoder", config=config, dtype=torch.float16,
