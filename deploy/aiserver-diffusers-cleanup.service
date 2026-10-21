@@ -1,0 +1,8 @@
+[Unit]
+Description=Expire independent Diffusers job artifacts
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/minixm/AIserver-diffusers
+ExecStart=/home/minixm/AIserver-diffusers/.venv/bin/python -m scripts.cleanup
+Environment=H3_RETENTION_DAYS=7
