@@ -15,7 +15,7 @@ def video_vae(device):
     model = AutoencoderKLMiniMaxH3.from_pretrained(
         str(MODEL_ROOT / "vae"), torch_dtype=torch.float16, local_files_only=True)
     model.enable_tiling(tile_sample_min_height=256, tile_sample_min_width=256,
-                        tile_overlap_factor_height=0.25, tile_overlap_factor_width=0.25)
+                        tile_sample_min_overlap_height=64, tile_sample_min_overlap_width=64)
     return model.eval().to(device)
 
 

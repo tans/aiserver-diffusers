@@ -18,7 +18,7 @@ from diffusers.modular_pipelines.minimax_h3.modular_blocks_minimax_h3 import (
 from safetensors.torch import save_file
 from transformers import AutoConfig, AutoProcessor, AutoTokenizer, Qwen3VLForConditionalGeneration
 
-from .components import MODEL_ROOT, video_vae
+from .components import MODEL_ROOT, video_vae, audio_vae
 
 
 def encode(request, output):
@@ -74,15 +74,15 @@ def encode(request, output):
         from diffusers.modular_pipelines.minimax_h3.encoders import MiniMaxH3Ref2VAReferenceEncoderStep
         refpipe = MiniMaxH3ModularPipeline(blocks=MiniMaxH3Ref2VAReferenceEncoderStep())
         vae = video_vae("cuda:0")
-        refpipe.update_components(vae=vae)
+        refpipe.update_components(vae=vae, audio_vae=audio_vae("cpu"))
         refstate = refpipe(normalized_references=normalized, output=None)
-        for name in ("reference_latents", "reference_audio_latents"):
+        for name in ("condition_latents", "audio_condition_latents"):
             value = refstate.get(name)
             if value:
                 for i, tensor in enumerate(value):
                     tensors[f"{name}.{i}"] = tensor.detach().cpu().contiguous()
-        # Preserve normalized metadata for building the ref2va packed layout.
-        # References are reconstructed from uploaded media by the denoising stage.
+        Path(output).with_suffix(".references.json").write_text(json.dumps(
+            [{"kind": r.kind, "has_audio": r.has_audio} for r in normalized]))
     if not all(bool(torch.isfinite(v).all()) for v in tensors.values()):
         raise FloatingPointError("Non-finite conditioning")
     target = Path(output)

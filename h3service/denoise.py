@@ -37,15 +37,25 @@ def main():
     print(json.dumps({"event": "loaded", **report}), flush=True)
     from diffusers import MiniMaxH3Scheduler
     from diffusers.modular_pipelines.minimax_h3.modular_pipeline import MiniMaxH3ModularPipeline
-    from diffusers.modular_pipelines.minimax_h3.modular_blocks_minimax_h3 import MiniMaxH3CoreDenoiseStep
-    pipe = MiniMaxH3ModularPipeline(blocks=MiniMaxH3CoreDenoiseStep())
-    pipe.update_components(transformer=model, scheduler=MiniMaxH3Scheduler(shift=12.0),
+    from diffusers.modular_pipelines.minimax_h3.modular_blocks_minimax_h3 import (
+        MiniMaxH3CoreDenoiseStep, MiniMaxH3Ref2VACoreDenoiseStep)
+    refs_path = Path(args.condition).with_suffix(".references.json")
+    is_ref = refs_path.exists()
+    pipe = MiniMaxH3ModularPipeline(blocks=MiniMaxH3Ref2VACoreDenoiseStep() if is_ref else MiniMaxH3CoreDenoiseStep())
+    pipe.update_components(**({"transformer_ref": model} if is_ref else {"transformer": model}), scheduler=MiniMaxH3Scheduler(shift=12.0),
                            audio_scheduler=MiniMaxH3Scheduler(shift=3.0))
     condition = load_file(args.condition, device=str(device))
     prompt = condition["prompt_embeds"].to(torch.float16)
     if prompt.ndim == 2:
         prompt = prompt[None]
     tags = condition.get("text_token_tags", torch.ones(prompt.shape[1], dtype=torch.long)).cpu()
+    ref_inputs = {}
+    if is_ref:
+        from types import SimpleNamespace
+        ref_inputs["normalized_references"] = [SimpleNamespace(**r) for r in json.loads(refs_path.read_text())]
+        for name in ("condition_latents", "audio_condition_latents"):
+            keys = sorted((k for k in condition if k.startswith(name + ".")), key=lambda k: int(k.rsplit(".", 1)[1]))
+            ref_inputs[name] = [condition[k] for k in keys]
     forwards = []
     current = [0.0]
     def before(module, inputs):
@@ -66,7 +76,7 @@ def main():
     state = pipe(prompt_embeds=prompt, text_token_tags=tags, width=args.width, height=args.height,
                  num_frames=args.frames, num_inference_steps=args.steps + 1,
                  generator=torch.Generator(device="cpu").manual_seed(args.seed),
-                 output=["latents", "audio_latents"])
+                 output=["latents", "audio_latents"], **ref_inputs)
     torch.cuda.synchronize()
     if len(forwards) != args.steps:
         raise RuntimeError(f"Expected {args.steps} actual forwards, observed {len(forwards)}")
