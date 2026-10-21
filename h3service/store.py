@@ -61,6 +61,8 @@ def update(job_id, **values):
 def claim(worker_id, eligible=None):
     with database() as con:
         con.execute("BEGIN IMMEDIATE")
+        if (DATA / "drain").exists():
+            return None
         rows = con.execute("SELECT * FROM jobs WHERE status='queued' AND cancel_requested=0 "
                            "ORDER BY priority DESC, created_at").fetchall()
         row = next((row for row in rows if eligible is None or eligible(row)), None)

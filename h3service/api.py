@@ -55,9 +55,11 @@ def ready():
     cap = capabilities()
     with database() as con:
         workers = [dict(r) for r in con.execute("SELECT * FROM workers")]
-    alive = [w for w in workers if (datetime.now(timezone.utc) - datetime.fromisoformat(w["heartbeat"])).total_seconds() < 30]
-    return {"status": "ready" if cap.get("enabled") and alive else "not_ready", "engine": "diffusers",
-            "capabilities": cap, "workers": alive}
+    alive = [w for w in workers if (datetime.now(timezone.utc) - datetime.fromisoformat(w["heartbeat"])).total_seconds() < 30
+             and Path(f"/proc/{w['pid']}").exists()]
+    draining = (DATA / "drain").exists()
+    return {"status": "ready" if cap.get("enabled") and alive and not draining else "not_ready", "engine": "diffusers",
+            "capabilities": cap, "workers": alive, "draining": draining}
 
 
 @app.get("/v1/models")
