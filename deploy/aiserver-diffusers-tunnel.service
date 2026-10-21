@@ -1,0 +1,15 @@
+[Unit]
+Description=Independent Diffusers H3 reverse SSH tunnel (cloud 8190)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/ssh -N -T -o ServerAliveInterval=15 -o ServerAliveCountMax=2 -o ExitOnForwardFailure=yes -o TCPKeepAlive=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/root/.ssh/known_hosts_tunnel -o IdentitiesOnly=yes -i /root/.ssh/id_ed25519_tunnel -p 22 -R 0.0.0.0:8190:127.0.0.1:8190 root@43.139.7.28
+Restart=always
+RestartSec=5
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
