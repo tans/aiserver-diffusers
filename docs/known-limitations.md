@@ -1,7 +1,7 @@
 # Known limitations — 2026-10-21
 
 - Native Diffusers T2VA, TP6, 512×320, 124 frames, 20 actual forwards has completed video/audio VAE decoding and MP4 verification. Only this geometry/task is initially admitted by the API.
-- TP3 with the default CUDA allocator failed with OOM. `expandable_segments:True` passed a single forward and two concurrent 20-forward denoisers. Full dual MP4 acceptance and cold-conditioning concurrency are separate gates.
+- TP3 with the default CUDA allocator failed with OOM. `expandable_segments:True` passed a single forward and two concurrent 20-forward denoisers. Full dual MP4 acceptance has now passed for one cache-warm pair; cold-conditioning concurrency remains a separate gate.
 - Simultaneous dual model loading suffered one SIGKILL. Kernel logs are unavailable to the service account, so host OOM is a hypothesis rather than a confirmed cause. Staged loading and CPU allocator trimming reduced sampled process-tree PSS on the subsequent attempt.
 - Turbo4/8 and the native sm70 H3 attention kernel have experimental CLI routes. They are not public API profiles until complete multi-seed video validation.
 - INT8 and CPU group offload are not enabled. The working FP16 TP3 candidate does not require weight quantization, but its activation margin is small.

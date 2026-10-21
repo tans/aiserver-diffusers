@@ -12,7 +12,7 @@
 | First simultaneous dual TP3 load | Failed SIGKILL | 35.53 s until failure | 25.19 GiB sampled process-tree PSS |
 | Staggered dual TP3, 20 forwards each | Denoising passed; one MP4 failed due to shared temporary filename | Approximately 75 s per denoiser | 17.36 GiB sampled tree PSS; GPU used up to 15,530 MiB |
 
-The shared temporary filename has been corrected and a complete pair is being regenerated. Failed attempts remain recorded and are not counted as successful videos. A sum of separately measured stages is not a measured end-to-end API latency.
+The shared temporary filename was corrected. A complete cache-warm pair subsequently passed: 188.75 s for two verified MP4s, including staged weight loading, 152.55 s DiT pair phase, 18.34 GiB sampled PSS and up to 15,530 MiB GPU used memory. See reports/measured-baseline.md and raw JSON. Failed attempts remain recorded and are not counted as successful videos. A sum of separately measured stages is not a measured end-to-end API latency.
 
 ## Benchmark tooling
 

@@ -1,0 +1,4 @@
+mode,geometry,forwards,conditioning_state,denoise_seconds,process_seconds,peak_cuda_allocated_mib,success
+tp6,512x320x124,20,precomputed,86.26534265102237,111.32071608598926,8131.68212890625,True
+dual-tp3-a,512x320x124,20,precomputed,75.16285822002101,104.27097827900434,14573.37060546875,True
+dual-tp3-b,512x320x124,20,precomputed,74.5066179310088,101.80984117701882,14573.37060546875,True
