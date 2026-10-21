@@ -58,7 +58,10 @@ class TPLinear(nn.Module):
         x = (x / self.scale).to(self.weight.dtype) if self.scale != 1 else x.to(self.weight.dtype)
         if os.getenv("H3_TRACE_FINITE") == "1" and not bool(torch.isfinite(x).all()):
             raise FloatingPointError(f"Linear input cast overflow: mode={self.mode}, scale={self.scale}, absmax={original.abs().max().item()}")
-        if self.mode == "row" and os.getenv("H3_FP32_LINEAR_OUTPUT") == "1":
+        # FP16 output packing can overflow even when inputs and the true
+        # projection result are finite. Keep tensor-core inputs/weights FP16
+        # and request an FP32 output before any TP reduction or rescaling.
+        if self.mode == "row" and os.getenv("H3_FP32_LINEAR_OUTPUT", "1") == "1":
             output = torch.mm(x.reshape(-1, x.shape[-1]), self.weight.t(), out_dtype=torch.float32)
             output = output.reshape(*x.shape[:-1], self.weight.shape[0])
         else:
@@ -254,4 +257,5 @@ def _load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
     return model, {"load_seconds": time.perf_counter() - started,
                    "tp_size": world, "rank": rank, "checkpoint": str(root),
                    "local_parameter_bytes": sum(p.numel() * p.element_size() for p in model.parameters()),
+                   "fp32_row_output": os.getenv("H3_FP32_LINEAR_OUTPUT", "1") == "1",
                    "attention": attention, "checkpoint_keys": len(index)}
