@@ -60,6 +60,7 @@ def decode(source, output):
     temp = output.with_name("output.encoding.mp4")
     command = ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{width}x{height}",
                "-r", "24", "-i", "pipe:0", "-i", str(pcm), "-c:v", "libx264", "-crf", "17", "-preset", "veryfast",
+               "-x264-params", "asm=0", "-threads", "8",
                "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "32000", "-ac", "2", "-movflags", "+faststart", str(temp)]
     subprocess.run(command, input=frames.tobytes(), check=True)
     subprocess.run(["ffmpeg", "-v", "error", "-xerror", "-i", str(temp), "-f", "null", "-"], check=True)

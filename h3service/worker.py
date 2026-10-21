@@ -137,7 +137,10 @@ def conditioning_key(payload):
                 s = file.stat()
                 identity.append((str(file), s.st_size, s.st_mtime_ns))
     refs = payload["input"].get("_references", {})
-    reference_hashes = {kind: [hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in paths]
+    def file_sha(path):
+        with Path(path).open("rb") as source:
+            return hashlib.file_digest(source, "sha256").hexdigest()
+    reference_hashes = {kind: [file_sha(p) for p in paths]
                         for kind, paths in refs.items()}
     # Source adapter/dependency changes invalidate conditioning independently.
     key = {"prompt": payload["input"]["prompt"], "references": reference_hashes,
