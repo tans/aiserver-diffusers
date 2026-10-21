@@ -4,10 +4,10 @@
 
 - Native Diffusers TP6, 512×320/124f/20 actual forwards: 86.27 s denoise, 111.32 s DiT process. Separate native video/audio decode and MP4: 23.91 s.
 - Turbo8 TP6, two fixed seeds: 28.08 s and 26.03 s denoise, 56.87 s and 54.31 s DiT process; approximately 24 s separate decode each. Both MP4s validate. Continuous frame samples were visually reviewed for character/scene stability. Audio stream validity is checked; no human lip-sync rating is claimed.
-- Cache-warm dual TP3: two 20-forward videos and verified MP4s in 188.75 s. CPU staging is serialized; the full cold-conditioning worker pair is a separate outstanding measurement.
+- Cache-warm dual TP3: two 20-forward videos and verified MP4s in 188.75 s. CPU staging is serialized; this historical pair preceded the final row-output fix. The subsequent final configuration passed two different-prompt cold tasks in 276.39 s pair wall time.
 - Native sm70 H3 attention probe, same seed/input/20 forwards: 72.66 s denoise versus 86.27 s SDPA. One seed only; not a robust kernel speedup estimate or public default. Final latent video RMSE 0.0975 against baseline RMS 1.0235; arithmetic is not bit-identical. The decoded output was sampled visually.
 - TP6 higher-resolution feasibility: 1024×576/124f one forward 15.52 s, peak CUDA allocation 10,436.90 MiB; 1280×768 one forward 33.48 s, 12,784.27 MiB. These are single-forward feasibility checks, not completed higher-resolution videos.
-- Image conditioning: 139.49 s total, including 22.67 s TE setup and 48.57 s text/vision encoding. Native reference video VAE produces the original-resolution conditioning latent. Complete reference generation remains under validation.
+- Image conditioning: 139.49 s total, including 22.67 s TE setup and 48.57 s text/vision encoding. Native reference video VAE produces the original-resolution conditioning latent. Two complete reference Turbo4 seeds subsequently passed native decoding and MP4 checks, with approximately 81.4 s denoising each.
 
 ## Mechanisms
 
@@ -21,6 +21,9 @@ The original GPU lock prevents the old service and the new service from competin
 
 ## Disabled candidates and remaining decisions
 
-Turbo4 reference generation and cold three-card conditioning are under validation. DiT residency across tasks, INT8 and block offload are not enabled. At the validated small geometry FP16 TP3 already holds resident DiT shards, so weight compression/offload is not required to establish that baseline. Their usefulness for higher-resolution TP3 remains unmeasured; no performance claim is made.
+Turbo4 reference generation on six cards and cold three-card conditioning have passed. DiT residency across tasks, INT8 and block offload are not enabled. At the validated small geometry FP16 TP3 already holds resident DiT shards, so weight compression/offload is not required to establish that baseline. Their usefulness for higher-resolution TP3 remains unmeasured; no performance claim is made.
 
-Actual public API cold/warm, sustained ten/twenty-job workloads and matched LightX2V comparison remain separate acceptance work. Raw JSON is retained under reports/evidence.
+Public generation/download and ten consecutive dual-TP3 tasks passed. A separate final TP6 Turbo8 two-task window measured 34.16 videos/hour versus 61.37/hour for the dual ten-task window; mean inference 105.34 versus 113.15 s. Different short-window sample sizes limit this approximately 1.80x observed throughput comparison. The public twenty-job mixed workload and complete larger-geometry clips remain active/pending, followed by the final matched cold LightX comparison. Raw JSON is retained under reports/evidence.
+
+
+The captured-forward numerical fix is documented in reports/numeric-fix.md. FP32 row GEMM output is now the default, before distributed reduction and rescaling. Earlier individual stage timings above remain historical probe measurements; the final API comparison is explicitly identified separately.

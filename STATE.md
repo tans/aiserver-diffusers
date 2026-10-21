@@ -1,24 +1,34 @@
-# Working state
+# Working state — 2026-10-21
 
 Issue truth: https://github.com/tans/aiserver-diffusers/issues/1 (open).
 
-Independent server directory: `/home/minixm/AIserver-diffusers`; loopback API 8190. Original service remains `/home/minixm/AIserver` and public relay 8189. Never edit its code or environment for this task.
+## Current deployment
 
-Passed: full native Diffusers T2VA 512×320/124f/20 forwards, original video/audio VAEs, MP4 validation, strict TP6 loader, TP3 finite forward, dual TP3 complete two-MP4 cache-warm generation (188.75 s pair), upload, queued cancellation, nearest-frame API compatibility. Default worker remains TP6.
+- Independent server directory `/home/minixm/AIserver-diffusers`, own venv and SQLite/data. Public API http://minixm.minapp.xin:8190, docs `/docs`; original service remains `/home/minixm/AIserver` on public 8189.
+- API, worker A, worker B and the separate reverse tunnel are enabled. User linger is enabled. `scripts.set_mode dual-tp3` was exercised successfully; `/ready` reports A [0,1,2], B [3,4,5]. Text quality/Turbo8 uses dual TP3; reference Turbo4 obtains exclusive TP6 through A.
+- Public geometry remains 512×320/124 frames. Supported tasks/profiles: text quality (20+ actual forwards), text Turbo8 (eight), one-image reference Turbo4 (four).
+- Daily cleanup timer is enabled; next scheduled run 2026-10-22 00:00 CST. It expires this service's seven-day terminal job artifacts/cache and preserves metadata; inputs are not automatically pruned. No old-service data is touched.
+- Inference memory slice: MemoryHigh 22 GiB, MemoryMax 24 GiB, MemorySwapMax 1 GiB, inference OOM eviction priority 800. Subsequent max/oom/oom_kill counters remain zero; host historical oom_kill remains 15.
 
-Passed: ten consecutive Turbo8 tasks, concurrency two, isolated TP3 API 8192; 10/10 succeeded. Wall throughput 40.98 videos/hour includes initial old-service GPU wait; active-window throughput 61.37/hour over 586.61 seconds. Public default remains TP6 pending mode switch and fault acceptance.
+## Passed evidence
 
-Numerical fix: captured forward 17 failed reproducibly at block 45 FFN row projection. FP32 row-projection outputs resolved the captured forward and both different-prompt full 20-forward cold jobs passed (276.39 s pair wall time). The original failed attempts are retained. Public Turbo8 submission/result hash and two reference Turbo4 seeds also passed.
+- Native Diffusers TP6 and TP3, original video/audio VAEs and verified MP4 output. Two different-prompt cold dual quality jobs completed twenty actual forwards each after the FP32 row-output fix, pair wall 276.39 s.
+- Turbo8 text and Turbo4 reference fixed-seed complete outputs. Public browser submission and result download/hash passed.
+- Ten consecutive cached-prompt Turbo8 dual-TP3 tasks: 10/10 succeeded, five per group. Batch wall 878.44 s includes initial legacy GPU waiting; active window 586.61 s gives 61.37 videos/hour. Mean inference 113.15 s.
+- Two serial TP6 cached-prompt Turbo8 tasks: 2/2 succeeded, mean inference 105.34 s, active-window rate 34.16/hour. Observed short-window ratio about 1.80x; sample sizes differ and no hour-long capacity claim is made.
+- Upload, queued cancellation, nearest-frame compatibility (5.17 seconds maps to 124), isolated storage-admission 507.
+- SIGKILL during actual denoising: API stayed available; restarted worker marked interrupted work failed/WORKER_RESTARTED. Subsequent actual-forward user cancellation reached cancelled; GPU process groups were reaped.
 
-Pending higher-resolution unit h3-highres-turbo8 is stopped before its first GPU task so the ten-job throughput run has an independent window. Restart it after the batch; it runs two seeds each at 1024×576 and 1280×768, Turbo8, under the inference memory slice.
+## Active acceptance
 
+- Public twenty-job mixed workload: eighteen text Turbo8 plus two one-image reference Turbo4 requests, concurrency two. It validates TP3-to-TP6 fallback and persistent queue operation. Output target `data/benchmarks/public-dual-mixed20-final`.
+- A separate candidate on 8193 is scheduled to start only after mixed20 succeeds: a same-prompt/seed cold quality20 comparison against the recorded original LightX task, then two Turbo8 seeds each at 1024×576 and 1280×768. Larger public geometry stays gated until complete output and visual review pass.
 
-Remaining: production mode switching, running cancellation and crash recovery, larger geometry full generation, twenty mixed tasks, final matched mode comparison and real reboot recovery. Reference Turbo4 generation and public Turbo8 generation/download have passed. INT8/offload/residency remain unimplemented candidates.
+## Remaining boundaries
 
-Every source edit is committed/pushed on main. No test code is added. Benchmarks perform real local inference under the shared GPU lock and wait for existing service jobs.
+- Complete active workloads, collect JSON/CSV/Markdown, inspect higher-resolution output and reconcile final server Git SHA.
+- No real host reboot has been performed. Worker restart and enabled units do not prove host reboot recovery. A reboot affects the original service and other active jobs and needs an agreed maintenance boundary.
+- INT8, cross-task DiT residency and DiT group offload are unimplemented candidates. Native sm70 attention passed one historical complete seed and remains an explicit CLI candidate, not the public default. Exact H2D/compute/idle decomposition and human lip-sync ratings are unmeasured.
+- The initial simultaneous-load attempt caused kernel-confirmed host memory-policy OOM that killed original and new APIs before systemd recovery. The later bounded configuration has not repeated it; do not describe the initial API as continuously available.
 
-Kernel journal confirmed first-load host OOM affected original and new APIs before recovery. Inference is now under a shared 24 GiB cgroup memory cap, 22 GiB soft threshold and OOM eviction priority 800. Do not describe the earlier API as continuously available.
-
-Runtime acceptance passed: actual-forward SIGKILL followed by WORKER_RESTARTED and separate actual-forward user cancellation; API remained available, no GPU subprocess remained at checkpoints. Raw evidence reports/evidence/runtime-acceptance.json. Candidate units were stopped afterwards. Public TP6 two-job Turbo8 comparison is active.
-
-Public mode switched successfully with scripts.set_mode: /ready reports worker A [0,1,2], B [3,4,5], default_tp_size 3. Twenty public mixed jobs (18 text Turbo8 + 2 image-reference Turbo4) are active. Final TP6 Turbo8 two-task comparison passed: mean inference 105.34 s, active-window throughput 34.16/hour. Dual ten-task window is 61.37/hour (about 1.80x, short unequal samples). A separate higher-resolution candidate is scheduled to start only after mixed20 finishes, then run matched cold quality20 and two seeds per larger geometry.
+Every source/doc change is committed and pushed on main. No test code is added. Real inference benchmarks use GPU locks and yield to recent original-service work. The new venv reuses the original POWER9 binary packages read-only; package writes are isolated but the binaries remain a dependency.
