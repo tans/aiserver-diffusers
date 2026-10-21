@@ -1,0 +1,10 @@
+{
+  "status": 507,
+  "body": {
+    "detail": {
+      "code": "INSUFFICIENT_STORAGE",
+      "message": "Insufficient free space for a new video job"
+    }
+  },
+  "scope": "isolated admission API, artificial minimum free-space threshold, no GPU generation"
+}

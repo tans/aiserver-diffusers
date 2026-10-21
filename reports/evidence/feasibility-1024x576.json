@@ -1,0 +1,112 @@
+{
+  "ranks": [
+    {
+      "load_seconds": 18.697620177990757,
+      "tp_size": 6,
+      "rank": 0,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "engine": "diffusers",
+      "actual_forwards": 1,
+      "requested_steps": 1,
+      "forward_seconds": [
+        15.397775168996304
+      ],
+      "denoise_seconds": 15.519945995998569,
+      "process_seconds": 41.38756654801546,
+      "peak_cuda_allocated_mib": 10436.90380859375
+    },
+    {
+      "load_seconds": 18.721525980974548,
+      "tp_size": 6,
+      "rank": 1,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "engine": "diffusers",
+      "actual_forwards": 1,
+      "requested_steps": 1,
+      "forward_seconds": [
+        15.374360752000939
+      ],
+      "denoise_seconds": 15.494794421014376,
+      "process_seconds": 41.388123713986715,
+      "peak_cuda_allocated_mib": 10436.90380859375
+    },
+    {
+      "load_seconds": 18.71995008099475,
+      "tp_size": 6,
+      "rank": 2,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "engine": "diffusers",
+      "actual_forwards": 1,
+      "requested_steps": 1,
+      "forward_seconds": [
+        15.377063343010377
+      ],
+      "denoise_seconds": 15.50086004001787,
+      "process_seconds": 41.39098056900548,
+      "peak_cuda_allocated_mib": 10436.90380859375
+    },
+    {
+      "load_seconds": 18.785160019004252,
+      "tp_size": 6,
+      "rank": 3,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "engine": "diffusers",
+      "actual_forwards": 1,
+      "requested_steps": 1,
+      "forward_seconds": [
+        15.306309494015295
+      ],
+      "denoise_seconds": 15.43136074198992,
+      "process_seconds": 41.390495413012104,
+      "peak_cuda_allocated_mib": 10436.90380859375
+    },
+    {
+      "load_seconds": 18.663295756996376,
+      "tp_size": 6,
+      "rank": 4,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "engine": "diffusers",
+      "actual_forwards": 1,
+      "requested_steps": 1,
+      "forward_seconds": [
+        15.416433581005549
+      ],
+      "denoise_seconds": 15.538160919008078,
+      "process_seconds": 41.38937206499395,
+      "peak_cuda_allocated_mib": 10436.90380859375
+    },
+    {
+      "load_seconds": 18.788135431997944,
+      "tp_size": 6,
+      "rank": 5,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "engine": "diffusers",
+      "actual_forwards": 1,
+      "requested_steps": 1,
+      "forward_seconds": [
+        15.306310720014153
+      ],
+      "denoise_seconds": 15.466334600991104,
+      "process_seconds": 41.42465801801882,
+      "peak_cuda_allocated_mib": 10436.90380859375
+    }
+  ]
+}

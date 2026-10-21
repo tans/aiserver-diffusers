@@ -1,0 +1,190 @@
+{
+  "ranks": [
+    {
+      "load_seconds": 18.861141811008565,
+      "tp_size": 6,
+      "rank": 0,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "turbo": {
+        "profile": "turbo8",
+        "path": "/srv/models/lightx2v/h3/lora/turbo_tp6/minimax_h3_turbo_8step_v1.0_lightx2v.safetensors",
+        "targets": 312,
+        "scale_convention": "alpha / rank"
+      },
+      "engine": "diffusers",
+      "actual_forwards": 8,
+      "requested_steps": 8,
+      "forward_seconds": [
+        3.9813268420111854,
+        3.399212606018409,
+        3.4239590050128754,
+        3.426126206002664,
+        3.42689358300413,
+        3.429098688007798,
+        3.4332590350240935,
+        3.4340124239970464
+      ],
+      "denoise_seconds": 28.07927091702004,
+      "process_seconds": 56.873246575007215,
+      "peak_cuda_allocated_mib": 7896.85595703125
+    },
+    {
+      "load_seconds": 18.880283713981044,
+      "tp_size": 6,
+      "rank": 1,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "turbo": {
+        "profile": "turbo8",
+        "path": "/srv/models/lightx2v/h3/lora/turbo_tp6/minimax_h3_turbo_8step_v1.0_lightx2v.safetensors",
+        "targets": 312,
+        "scale_convention": "alpha / rank"
+      },
+      "engine": "diffusers",
+      "actual_forwards": 8,
+      "requested_steps": 8,
+      "forward_seconds": [
+        3.9789907399972435,
+        3.419007420015987,
+        3.424025521002477,
+        3.42618653801037,
+        3.4269501070084516,
+        3.4291618290008046,
+        3.433306431019446,
+        3.4340169269999024
+      ],
+      "denoise_seconds": 28.07352226000512,
+      "process_seconds": 56.87223184801405,
+      "peak_cuda_allocated_mib": 7896.85595703125
+    },
+    {
+      "load_seconds": 18.87287839502096,
+      "tp_size": 6,
+      "rank": 2,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "turbo": {
+        "profile": "turbo8",
+        "path": "/srv/models/lightx2v/h3/lora/turbo_tp6/minimax_h3_turbo_8step_v1.0_lightx2v.safetensors",
+        "targets": 312,
+        "scale_convention": "alpha / rank"
+      },
+      "engine": "diffusers",
+      "actual_forwards": 8,
+      "requested_steps": 8,
+      "forward_seconds": [
+        3.9809995139949024,
+        3.4295103220210876,
+        3.4239910100004636,
+        3.426243062975118,
+        3.426845597976353,
+        3.42923285899451,
+        3.433322639990365,
+        3.434103332023369
+      ],
+      "denoise_seconds": 28.07930146099534,
+      "process_seconds": 56.87235334099387,
+      "peak_cuda_allocated_mib": 7896.85595703125
+    },
+    {
+      "load_seconds": 18.95219017099589,
+      "tp_size": 6,
+      "rank": 3,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "turbo": {
+        "profile": "turbo8",
+        "path": "/srv/models/lightx2v/h3/lora/turbo_tp6/minimax_h3_turbo_8step_v1.0_lightx2v.safetensors",
+        "targets": 312,
+        "scale_convention": "alpha / rank"
+      },
+      "engine": "diffusers",
+      "actual_forwards": 8,
+      "requested_steps": 8,
+      "forward_seconds": [
+        3.9808789810049348,
+        3.4282877609948628,
+        3.424020420992747,
+        3.426318785001058,
+        3.4268721510015894,
+        3.429278915980831,
+        3.4333965280093253,
+        3.4340982170251664
+      ],
+      "denoise_seconds": 28.078859795990866,
+      "process_seconds": 56.8737840949907,
+      "peak_cuda_allocated_mib": 7896.85595703125
+    },
+    {
+      "load_seconds": 18.86323980797897,
+      "tp_size": 6,
+      "rank": 4,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "turbo": {
+        "profile": "turbo8",
+        "path": "/srv/models/lightx2v/h3/lora/turbo_tp6/minimax_h3_turbo_8step_v1.0_lightx2v.safetensors",
+        "targets": 312,
+        "scale_convention": "alpha / rank"
+      },
+      "engine": "diffusers",
+      "actual_forwards": 8,
+      "requested_steps": 8,
+      "forward_seconds": [
+        3.98128780600382,
+        3.4316062509897165,
+        3.4241089599963743,
+        3.426295671000844,
+        3.4269418829935603,
+        3.429378266009735,
+        3.4333660750126,
+        3.4341793060011696
+      ],
+      "denoise_seconds": 28.07921760599129,
+      "process_seconds": 56.874241263984004,
+      "peak_cuda_allocated_mib": 7896.85595703125
+    },
+    {
+      "load_seconds": 18.856430925021414,
+      "tp_size": 6,
+      "rank": 5,
+      "checkpoint": "/srv/models/lightx2v/h3/diT/bf16_tp6",
+      "local_parameter_bytes": 7163960832,
+      "attention": "sdpa",
+      "checkpoint_keys": 635,
+      "turbo": {
+        "profile": "turbo8",
+        "path": "/srv/models/lightx2v/h3/lora/turbo_tp6/minimax_h3_turbo_8step_v1.0_lightx2v.safetensors",
+        "targets": 312,
+        "scale_convention": "alpha / rank"
+      },
+      "engine": "diffusers",
+      "actual_forwards": 8,
+      "requested_steps": 8,
+      "forward_seconds": [
+        3.9812692310079,
+        3.4304201250197366,
+        3.4240591550187673,
+        3.4262781270081177,
+        3.4269894319877494,
+        3.4293118490022607,
+        3.433402232010849,
+        3.434200179995969
+      ],
+      "denoise_seconds": 28.079234211007133,
+      "process_seconds": 56.87170354000409,
+      "peak_cuda_allocated_mib": 7896.85595703125
+    }
+  ]
+}
