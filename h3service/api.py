@@ -113,9 +113,7 @@ def submit(req: JobRequest):
     duration = p.get("duration_seconds")
     if isinstance(duration, bool) or not isinstance(duration, (int, float)) or not math.isfinite(duration) or not 5 <= duration <= 15:
         reject("UNSUPPORTED_DURATION", "duration_seconds must be between 5 and 15")
-    frames = next((n for n in range(124, 363, 17) if n / 24 >= duration - 1e-6), None)
-    if frames is None:
-        reject("UNSUPPORTED_DURATION", "Duration exceeds verified frame slots")
+    frames = min(range(124, 363, 17), key=lambda n: abs(n - duration * 24))
     width, height = p.get("width", 512), p.get("height", 320)
     if any(type(x) is not int or x < 32 or x % 32 for x in (width, height)) or width * height > 983040:
         reject("INVALID_DIMENSIONS", "Dimensions must be positive multiples of 32; area <= 983040")
