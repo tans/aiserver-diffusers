@@ -24,7 +24,7 @@ def main():
     p.add_argument("--frames", type=int, default=124)
     p.add_argument("--steps", type=int, default=20)
     p.add_argument("--seed", type=int, default=20261021)
-    p.add_argument("--attention", choices=["sdpa"], default="sdpa")
+    p.add_argument("--attention", choices=["sdpa", "h3_flashattn"], default="sdpa")
     p.add_argument("--profile", choices=["quality", "turbo4", "turbo8"], default="quality")
     args = p.parse_args()
     torch.set_grad_enabled(False)

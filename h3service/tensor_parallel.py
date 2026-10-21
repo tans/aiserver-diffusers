@@ -12,6 +12,7 @@ import ctypes
 import gc
 import time
 import types
+import sys
 from pathlib import Path
 
 import torch
@@ -85,9 +86,14 @@ class V100SDPA:
         if self.backend == "h3_flashattn":
             if attention_mask is not None:
                 raise ValueError("H3 flash attention does not support a mask")
-            import h3kern
-            # Verified separately before this experimental backend can be enabled.
-            out = h3kern.flash_attn_func(q, k, v)
+            if q.shape[-1] != 128 or torch.cuda.get_device_capability(q.device) != (7, 0):
+                raise ValueError("The audited H3 kernel requires sm70 and head dimension 128")
+            sys.path.insert(0, "/srv/lightx2v/pkg/h3kern")
+            try:
+                import _h3_flashattn_C as native
+            finally:
+                sys.path.pop(0)
+            out = native.forward(q.contiguous(), k.contiguous(), v.contiguous(), 128 ** -0.5, 0, 128)
         else:
             q, k, v = (t.transpose(1, 2).contiguous() for t in (q, k, v))
             out = torch.empty_like(q)
