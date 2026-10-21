@@ -1,8 +1,14 @@
 """Serialize CPU-heavy model staging across independent GPU groups."""
 from contextlib import contextmanager
 import fcntl
+from pathlib import Path
 
 from .store import DATA
+
+
+def prefer_inference_eviction():
+    """Let the kernel evict inference before the API if host memory is exhausted."""
+    Path("/proc/self/oom_score_adj").write_text("800")
 
 
 @contextmanager

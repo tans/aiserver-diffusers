@@ -18,6 +18,8 @@ from .components import video_vae, audio_vae
 
 
 def decode(source, output):
+    from .memory import prefer_inference_eviction
+    prefer_inference_eviction()
     torch.set_grad_enabled(False)
     torch.set_num_threads(4)
     started = time.perf_counter()
