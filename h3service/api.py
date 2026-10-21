@@ -120,17 +120,19 @@ def submit(req: JobRequest):
     if (width, height, frames) not in [tuple(x) for x in cap.get("geometries", [])]:
         reject("UNVERIFIED_GEOMETRY", "Requested geometry has not passed Diffusers admission", 422)
     profile = p.get("profile", "quality")
-    if profile not in ("quality", "turbo8") or profile not in cap.get("profiles", []):
+    if profile not in ("quality", "turbo4", "turbo8") or profile not in cap.get("profiles", []):
         reject("UNVERIFIED_PROFILE", "Requested profile has not passed admission")
-    if profile != "quality" and task not in cap.get(profile + "_tasks", []):
+    if task not in cap.get(profile + "_tasks", ["text_to_video"] if profile == "quality" else []):
         reject("UNVERIFIED_PROFILE", "Requested profile has not passed this workflow")
-    steps = p.get("steps", 8 if profile == "turbo8" else 20)
+    if [width, height, frames] not in cap.get("profile_geometries", {}).get(profile, cap.get("geometries", [])):
+        reject("UNVERIFIED_GEOMETRY", "Requested profile has not passed this geometry", 422)
+    steps = p.get("steps", {"quality": 20, "turbo4": 4, "turbo8": 8}[profile])
     if type(steps) is not int or not 4 <= steps <= 64:
         reject("INVALID_STEPS", "steps must be an integer between 4 and 64")
     if p.get("loras"):
         reject("UNVERIFIED_LORA", "LoRA support has not passed verification")
-    if (profile == "quality" and steps < 20) or (profile == "turbo8" and steps != 8):
-        reject("UNVERIFIED_PROFILE", "quality requires >=20 forwards; turbo8 requires exactly 8")
+    if (profile == "quality" and steps < 20) or (profile != "quality" and steps != {"turbo4": 4, "turbo8": 8}[profile]):
+        reject("UNVERIFIED_PROFILE", "steps must match the admitted profile")
     seed = p.get("seed", secrets.randbelow(2**31))
     if type(seed) is not int or not 0 <= seed < 2**63:
         reject("INVALID_SEED", "seed must be a nonnegative 63-bit integer")
@@ -140,7 +142,7 @@ def submit(req: JobRequest):
         if not isinstance(refs, dict):
             reject("REFERENCE_REQUIRED", "ref2av requires references")
         resolved = {}
-        for kind, maximum in (("images", 9), ("videos", 3), ("audios", 3)):
+        for kind, maximum in (("images", cap.get("max_image_references", 1)), ("videos", 3), ("audios", 3)):
             ids = refs.get(kind, [])
             if not isinstance(ids, list) or len(ids) > maximum:
                 reject("REFERENCE_LIMIT", "Invalid reference count")

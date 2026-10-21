@@ -19,7 +19,8 @@ def main():
     p.add_argument("--width", type=int, default=512)
     p.add_argument("--height", type=int, default=320)
     p.add_argument("--steps", type=int, default=20)
-    p.add_argument("--profile", choices=["quality", "turbo8"], default="quality")
+    p.add_argument("--profile", choices=["quality", "turbo4", "turbo8"], default="quality")
+    p.add_argument("--prompt-file")
     p.add_argument("--reference-id")
     p.add_argument("--output", default="data/benchmarks/run")
     p.add_argument("--timeout", type=int, default=3600)
@@ -34,7 +35,7 @@ def main():
             return json.load(response)
     def run(index):
         start = time.monotonic()
-        inp = {"prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."}
+        inp = {"prompt": Path(a.prompt_file).read_text().strip() if a.prompt_file else "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."}
         if a.reference_id:
             inp["references"] = {"images": [a.reference_id]}
         payload = {"model": "minimax-h3", "task": "ref2av" if a.reference_id else "text_to_video", "input": inp,
