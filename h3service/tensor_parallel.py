@@ -197,7 +197,7 @@ def load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
                     tensor = part[:, rank * step:(rank + 1) * step]
                 else:
                     tensor = state.get_tensor(key)
-                fp32 = ("adaln_proj" in key or key.startswith(("norm_out.", "proj_in.", "audio_proj_in.", "proj_out.", "audio_proj_out.")) or ".norm" in key or "final_norm" in key)
+                fp32 = ("adaln_proj" in key or key.startswith(("context_embedder.", "norm_out.", "proj_in.", "audio_proj_in.", "proj_out.", "audio_proj_out.")) or ".norm" in key or "final_norm" in key)
                 dtype = torch.float32 if fp32 else torch.float16
                 _replace(model, key, nn.Parameter(tensor.to(device=device, dtype=dtype), requires_grad=False))
     for module in model.modules():
