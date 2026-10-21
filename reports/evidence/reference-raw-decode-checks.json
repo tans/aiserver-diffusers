@@ -1,0 +1,86 @@
+{
+  "ref4-30": {
+    "returncode": 0,
+    "report": {
+      "engine": "diffusers",
+      "video_latents_denormalized": true,
+      "vae_tile_size": 256,
+      "video_raw_finite": true,
+      "video_raw_range": {
+        "min": -3.052734375,
+        "max": 4.03515625
+      },
+      "frames": 124,
+      "width": 512,
+      "height": 320,
+      "fps": 24,
+      "audio_samples": 165600,
+      "sample_rate": 32000,
+      "timing_seconds": {
+        "video_load": 5.577485498011811,
+        "video_decode": 12.097049725998659,
+        "audio_load_decode": 3.7978696710197255,
+        "encode_mp4": 1.5054406380222645
+      },
+      "total_seconds": 23.169710551999742,
+      "output_sha256": "e11ce143b28080e8280ec7640eab0347c36d538c671836877ef23eaceb14ce9f",
+      "peak_cuda_allocated_mib": 5671.0693359375
+    }
+  },
+  "ref8-30": {
+    "returncode": 0,
+    "report": {
+      "engine": "diffusers",
+      "video_latents_denormalized": true,
+      "vae_tile_size": 256,
+      "video_raw_finite": true,
+      "video_raw_range": {
+        "min": -2.814453125,
+        "max": 3.353515625
+      },
+      "frames": 124,
+      "width": 512,
+      "height": 320,
+      "fps": 24,
+      "audio_samples": 165600,
+      "sample_rate": 32000,
+      "timing_seconds": {
+        "video_load": 5.698110849014483,
+        "video_decode": 12.108432698994875,
+        "audio_load_decode": 3.7600531019852497,
+        "encode_mp4": 1.4103611010068562
+      },
+      "total_seconds": 23.169493813009467,
+      "output_sha256": "2b3c98b7d54d836076630c90c043a1d0211ad72183a534d746752451f04be035",
+      "peak_cuda_allocated_mib": 5671.0693359375
+    }
+  },
+  "ref8-31": {
+    "returncode": 0,
+    "report": {
+      "engine": "diffusers",
+      "video_latents_denormalized": true,
+      "vae_tile_size": 256,
+      "video_raw_finite": true,
+      "video_raw_range": {
+        "min": -3.01953125,
+        "max": 3.671875
+      },
+      "frames": 124,
+      "width": 512,
+      "height": 320,
+      "fps": 24,
+      "audio_samples": 165600,
+      "sample_rate": 32000,
+      "timing_seconds": {
+        "video_load": 5.585339651996037,
+        "video_decode": 12.032194241008256,
+        "audio_load_decode": 3.910713895020308,
+        "encode_mp4": 1.2707329179975204
+      },
+      "total_seconds": 23.08469957098714,
+      "output_sha256": "aa6fd11fbf3a60da1d8c6a078ab1800799d15cf612c0dad5c796695b6441aa16",
+      "peak_cuda_allocated_mib": 5671.0693359375
+    }
+  }
+}

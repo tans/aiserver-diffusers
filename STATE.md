@@ -6,7 +6,7 @@ Issue truth: https://github.com/tans/aiserver-diffusers/issues/1 (open).
 
 - Independent server directory `/home/minixm/AIserver-diffusers`, own venv and SQLite/data. Public API http://minixm.minapp.xin:8190, docs `/docs`; original service remains `/home/minixm/AIserver` on public 8189.
 - API, worker A, worker B and the separate reverse tunnel are enabled. User linger is enabled. `scripts.set_mode dual-tp3` was exercised successfully; `/ready` reports A [0,1,2], B [3,4,5]. Text quality/Turbo8 uses dual TP3; reference Turbo4 obtains exclusive TP6 through A.
-- Public geometry remains 512×320/124 frames. Current admission: text quality (20+ actual forwards) and text Turbo8 (eight). Reference admission is withheld after the visual-quality failure recorded in issue #2.
+- Public geometry remains 512×320/124 frames. Current admission: text quality (20+ actual forwards), text Turbo8 (eight), and one-image reference Turbo8 (eight) on exclusive TP6. Turbo4 is withheld after the visual-quality failure recorded in issue #2.
 - Daily cleanup timer is enabled; next scheduled run 2026-10-22 00:00 CST. It expires this service's seven-day terminal job artifacts/cache and preserves metadata; inputs are not automatically pruned. No old-service data is touched.
 - Inference memory slice: MemoryHigh 22 GiB, MemoryMax 24 GiB, MemorySwapMax 1 GiB, inference OOM eviction priority 800. Subsequent max/oom/oom_kill counters remain zero; host historical oom_kill remains 15.
 
@@ -21,9 +21,10 @@ Issue truth: https://github.com/tans/aiserver-diffusers/issues/1 (open).
 
 ## Active acceptance
 
-- The first public mixed workload was stopped after a reference Turbo4 seed 20261030 showed block artifacts at full size. The accepted text jobs were allowed to finish. This is an aborted diagnostic batch, not a successful twenty-task acceptance. Raw rows are in reports/evidence/public-mixed20-turbo4-aborted.json.
-- Public reference admission is withheld; text dual TP3 remains available. Exact reference conditioning comparison with the earlier CLI run is bit-identical. An isolated reference-quality candidate on 8192 will compare the same seed with Turbo8, then other configurations as needed.
-- Tracking quality issue: https://github.com/tans/aiserver-diffusers/issues/2. The previous higher-resolution waiting loop was stopped; it will be scheduled again after visual-quality correction and the repeated mixed workload.
+- The first mixed workload was aborted after reference Turbo4 seed 20261030 showed block artifacts. Fourteen accepted jobs finished technically; this is not twenty-job acceptance. Raw initial/final rows remain in reports/evidence/public-mixed20-turbo4-aborted.json.
+- Controlled comparison passed: exact conditioning tensors match; disabling VAE tiling does not fix the bad Turbo4 latent; Turbo8 seeds 20261030/31 have clean full-size frame samples and strict raw-VAE finite checks with identical re-decode hashes. Reference admission is restored only for Turbo8/TP6. See reports/reference-quality.md and issue #2.
+- Corrected public mixed20 run is active, eighteen text Turbo8 plus two reference Turbo8, concurrency two. Output data/benchmarks/public-dual-mixed20-turbo8-final; started about 06:19 UTC / 14:19 CST.
+- A fresh loop waits for corrected mixed20 success, then starts isolated API 8193 for matched cold quality20 and two Turbo8 seeds per higher geometry. Output logs data/benchmarks/final-geometry-ref8-acceptance.log. The previous waiting loop was stopped.
 
 ## Remaining boundaries
 

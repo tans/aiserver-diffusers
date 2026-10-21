@@ -1,6 +1,6 @@
 # Compatibility and isolation
 
-Reference quality correction: public reference admission is currently withheld (issue #2). Turbo4 seed 20261030 passed finite/container checks but failed full-size visual review; the mixed workload was aborted. Historical successful executions below do not establish usable-video quality.
+Reference quality status: Turbo4 is withheld after a full-size seed 20261030 failure (issue #2). Controlled same-input Turbo8 seeds 20261030/31 passed full-size frame review and strict raw-VAE re-decode; public one-image reference admission is restored only for Turbo8/TP6 at 512×320/124f. The corrected mixed workload is a new run; historical successful executions do not establish usable-video quality.
 
 ## Runtime pins
 

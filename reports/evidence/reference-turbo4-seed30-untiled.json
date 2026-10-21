@@ -1,0 +1,20 @@
+{
+  "engine": "diffusers",
+  "video_latents_denormalized": true,
+  "vae_tile_size": 0,
+  "frames": 124,
+  "width": 512,
+  "height": 320,
+  "fps": 24,
+  "audio_samples": 165600,
+  "sample_rate": 32000,
+  "timing_seconds": {
+    "video_load": 5.628516538999975,
+    "video_decode": 6.079763610003283,
+    "audio_load_decode": 3.8264909869758412,
+    "encode_mp4": 1.799561420979444
+  },
+  "total_seconds": 17.53262331499718,
+  "output_sha256": "32281aec53d52fbf6a12b0f2b740aac442eceb59cc4de45d4e95f496e68e3e30",
+  "peak_cuda_allocated_mib": 5825.40625
+}

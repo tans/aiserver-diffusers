@@ -1,0 +1,243 @@
+{
+  "configuration": {
+    "url": "http://127.0.0.1:8192",
+    "count": 2,
+    "concurrency": 1,
+    "width": 512,
+    "height": 320,
+    "steps": 8,
+    "profile": "turbo8",
+    "seed": 20261030,
+    "prompt_file": null,
+    "reference_id": "9008ea022a82a8561d0a205fda282fea",
+    "mixed": false,
+    "reference_prompt_file": "data/probes/reference-benchmark-prompt.txt",
+    "reference_profile": "turbo4",
+    "output": "data/benchmarks/reference-turbo8-quality-30-31",
+    "timeout": 3600
+  },
+  "summary": {
+    "elapsed_seconds": 537.3519352949806,
+    "submitted": 2,
+    "succeeded": 2,
+    "success_rate": 1.0,
+    "videos_per_hour": 13.39903986025014,
+    "video_seconds_per_hour": 69.22837261129239,
+    "mean_latency_seconds": 268.6746787614975,
+    "p50_latency_seconds": 252.61066898499848,
+    "p95_latency_seconds": 284.7386885379965,
+    "quality_review": "pending human/visual review; success rate is not usable-video rate"
+  },
+  "runs": [
+    {
+      "index": 0,
+      "wall_seconds": 252.61066898499848,
+      "job": {
+        "id": "job_d83027ae36c246b28e3dcfd932adb6c6",
+        "model": "minimax-h3",
+        "task": "ref2av",
+        "status": "succeeded",
+        "priority": 0,
+        "worker_id": "reference-quality-worker",
+        "result": {
+          "engine": "diffusers",
+          "stages_seconds": {
+            "conditioning": 0,
+            "dit": 206.05954797400045,
+            "decode": 35.08438634101185,
+            "export": 0.502010326978052
+          },
+          "total_seconds": 241.68054265598767,
+          "worker_wall_seconds": 251.0545522410248,
+          "admission_wait_seconds": 9.37400728801731,
+          "queue_wait_seconds": 10.039852,
+          "timing": {
+            "stages_seconds": {
+              "conditioning": 0,
+              "dit": 206.05954797400045,
+              "decode": 35.08438634101185,
+              "export": 0.502010326978052
+            },
+            "total_seconds": 241.68054265598767
+          },
+          "conditioning_cache_hit": true,
+          "worker_id": "reference-quality-worker",
+          "devices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "profile": "turbo8",
+          "actual_forwards": 8,
+          "requested_steps": 8,
+          "frames": 124,
+          "width": 512,
+          "height": 320,
+          "model_evaluations": 8,
+          "requested_duration_seconds": 5,
+          "seed": 20261030,
+          "workflow": "h3service.worker",
+          "gpu_memory": {
+            "peak_memory_used_mib": 12717
+          },
+          "actual_duration_seconds": 5.166666666666667,
+          "resources": {
+            "peak_process_tree_pss_bytes": 14290512896,
+            "peak_gpu_used_mib": {
+              "0": 12676,
+              "1": 12716,
+              "2": 12696,
+              "3": 12676,
+              "4": 12717,
+              "5": 12700
+            },
+            "mean_gpu_utilization": {
+              "0": 68.8425925925926,
+              "1": 63.851851851851855,
+              "2": 64.12037037037037,
+              "3": 64.30555555555556,
+              "4": 64.37962962962963,
+              "5": 64.33333333333333
+            }
+          },
+          "media_revision": "2b3c98b7d54d836076630c90c043a1d0211ad72183a534d746752451f04be035",
+          "download_url": "/v1/jobs/job_d83027ae36c246b28e3dcfd932adb6c6/result"
+        },
+        "error_code": null,
+        "error_message": null,
+        "created_at": "2026-10-21T06:04:45.743406+00:00",
+        "updated_at": "2026-10-21T06:08:57.470639+00:00",
+        "request": {
+          "model": "minimax-h3",
+          "task": "ref2av",
+          "input": {
+            "prompt": "Use <Picture 1> as the exact design reference for the boy. Preserve his blue and white hoodie, dark hair and friendly face. A clean 3D animated shot of him greeting his mother in a bright living room. He says Hi Mum. Natural gentle movement and synchronized speech.",
+            "references": {
+              "images": [
+                "9008ea022a82a8561d0a205fda282fea"
+              ]
+            }
+          },
+          "parameters": {
+            "width": 512,
+            "height": 320,
+            "duration_seconds": 5,
+            "steps": 8,
+            "seed": 20261030,
+            "profile": "turbo8"
+          },
+          "options": {}
+        },
+        "prompt": "Use <Picture 1> as the exact design reference for the boy. Preserve his blue and white hoodie, dark hair and friendly face. A clean 3D animated shot of him greeting his mother in a bright living room. He says Hi Mum. Natural gentle movement and synchronized speech."
+      }
+    },
+    {
+      "index": 1,
+      "wall_seconds": 284.7386885379965,
+      "job": {
+        "id": "job_f09d79f736f74e4bb884813ca92c3fa5",
+        "model": "minimax-h3",
+        "task": "ref2av",
+        "status": "succeeded",
+        "priority": 0,
+        "worker_id": "reference-quality-worker",
+        "result": {
+          "engine": "diffusers",
+          "stages_seconds": {
+            "conditioning": 0,
+            "dit": 202.49837511399528,
+            "decode": 36.096549555979436,
+            "export": 0.5019368439971004
+          },
+          "total_seconds": 239.13091011100914,
+          "worker_wall_seconds": 283.66499021998607,
+          "admission_wait_seconds": 44.53407773398794,
+          "queue_wait_seconds": 44.671641,
+          "timing": {
+            "stages_seconds": {
+              "conditioning": 0,
+              "dit": 202.49837511399528,
+              "decode": 36.096549555979436,
+              "export": 0.5019368439971004
+            },
+            "total_seconds": 239.13091011100914
+          },
+          "conditioning_cache_hit": true,
+          "worker_id": "reference-quality-worker",
+          "devices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "profile": "turbo8",
+          "actual_forwards": 8,
+          "requested_steps": 8,
+          "frames": 124,
+          "width": 512,
+          "height": 320,
+          "model_evaluations": 8,
+          "requested_duration_seconds": 5,
+          "seed": 20261031,
+          "workflow": "h3service.worker",
+          "gpu_memory": {
+            "peak_memory_used_mib": 12717
+          },
+          "actual_duration_seconds": 5.166666666666667,
+          "resources": {
+            "peak_process_tree_pss_bytes": 12493957120,
+            "peak_gpu_used_mib": {
+              "0": 12676,
+              "1": 12716,
+              "2": 12696,
+              "3": 12676,
+              "4": 12717,
+              "5": 12700
+            },
+            "mean_gpu_utilization": {
+              "0": 70.50943396226415,
+              "1": 65.01886792452831,
+              "2": 65.36792452830188,
+              "3": 65.59433962264151,
+              "4": 65.49056603773585,
+              "5": 65.59433962264151
+            }
+          },
+          "media_revision": "aa6fd11fbf3a60da1d8c6a078ab1800799d15cf612c0dad5c796695b6441aa16",
+          "download_url": "/v1/jobs/job_f09d79f736f74e4bb884813ca92c3fa5/result"
+        },
+        "error_code": null,
+        "error_message": null,
+        "created_at": "2026-10-21T06:08:58.348653+00:00",
+        "updated_at": "2026-10-21T06:13:42.157360+00:00",
+        "request": {
+          "model": "minimax-h3",
+          "task": "ref2av",
+          "input": {
+            "prompt": "Use <Picture 1> as the exact design reference for the boy. Preserve his blue and white hoodie, dark hair and friendly face. A clean 3D animated shot of him greeting his mother in a bright living room. He says Hi Mum. Natural gentle movement and synchronized speech.",
+            "references": {
+              "images": [
+                "9008ea022a82a8561d0a205fda282fea"
+              ]
+            }
+          },
+          "parameters": {
+            "width": 512,
+            "height": 320,
+            "duration_seconds": 5,
+            "steps": 8,
+            "seed": 20261031,
+            "profile": "turbo8"
+          },
+          "options": {}
+        },
+        "prompt": "Use <Picture 1> as the exact design reference for the boy. Preserve his blue and white hoodie, dark hair and friendly face. A clean 3D animated shot of him greeting his mother in a bright living room. He says Hi Mum. Natural gentle movement and synchronized speech."
+      }
+    }
+  ]
+}

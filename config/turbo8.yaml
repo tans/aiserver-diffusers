@@ -13,14 +13,24 @@
     ]
   ],
   "verified_tasks": [
-    "text_to_video"
+    "text_to_video",
+    "ref2av"
   ],
   "verified_tp_sizes": [
     6,
     3
   ],
   "row_projection_output_dtype": "float32",
-  "validation_note": "Ten consecutive dual-TP3 API tasks passed; one cached prompt, ten seeds.",
+  "validation_note": "Ten dual-TP3 text tasks and two full-size reference seeds passed; strict raw VAE checks retain identical output hashes. References use TP6 only.",
   "default_tp_size": 3,
-  "configuration_role": "Descriptive verified recipe; runtime admission and selected mode use data/verified-capabilities.json."
+  "configuration_role": "Descriptive verified recipe; runtime admission and selected mode use data/verified-capabilities.json.",
+  "task_tp_sizes": {
+    "text_to_video": [
+      3,
+      6
+    ],
+    "ref2av": [
+      6
+    ]
+  }
 }
