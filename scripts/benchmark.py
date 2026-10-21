@@ -22,11 +22,15 @@ def main():
     p.add_argument("--profile", choices=["quality", "turbo4", "turbo8"], default="quality")
     p.add_argument("--prompt-file")
     p.add_argument("--reference-id")
+    p.add_argument("--mixed", action="store_true", help="Use one reference Turbo4 job per ten submissions")
+    p.add_argument("--reference-prompt-file")
     p.add_argument("--output", default="data/benchmarks/run")
     p.add_argument("--timeout", type=int, default=3600)
     a = p.parse_args()
     if not 1 <= a.count <= 100 or not 1 <= a.concurrency <= 2:
         p.error("count must be 1–100 and concurrency 1–2")
+    if a.mixed and not a.reference_id:
+        p.error("mixed workloads require an uploaded reference-id")
     def request(path, payload=None):
         req = urllib.request.Request(a.url.rstrip("/") + path,
             data=json.dumps(payload).encode() if payload is not None else None,
@@ -35,12 +39,15 @@ def main():
             return json.load(response)
     def run(index):
         start = time.monotonic()
-        inp = {"prompt": Path(a.prompt_file).read_text().strip() if a.prompt_file else "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."}
-        if a.reference_id:
+        is_ref = bool(a.reference_id) and (not a.mixed or index % 10 == 9)
+        prompt_file = a.reference_prompt_file if is_ref and a.reference_prompt_file else a.prompt_file
+        inp = {"prompt": Path(prompt_file).read_text().strip() if prompt_file else "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."}
+        if is_ref:
             inp["references"] = {"images": [a.reference_id]}
-        payload = {"model": "minimax-h3", "task": "ref2av" if a.reference_id else "text_to_video", "input": inp,
+        profile, steps = ("turbo4", 4) if a.mixed and is_ref else (a.profile, a.steps)
+        payload = {"model": "minimax-h3", "task": "ref2av" if is_ref else "text_to_video", "input": inp,
                    "parameters": {"width": a.width, "height": a.height, "duration_seconds": 5,
-                                  "steps": a.steps, "seed": 20261021 + index, "profile": a.profile}}
+                                  "steps": steps, "seed": 20261021 + index, "profile": profile}}
         submitted = None
         try:
             submitted = request("/v1/jobs", payload)
