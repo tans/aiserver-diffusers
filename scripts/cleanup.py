@@ -26,12 +26,13 @@ def main():
                 con.execute('UPDATE jobs SET result=? WHERE id=?', (json.dumps(result), row['id']))
     # Cache pruning is skipped whenever any task could be reading a cache entry.
     with database() as con:
+        con.execute('BEGIN IMMEDIATE')
         active = con.execute("SELECT count(*) FROM jobs WHERE status IN ('queued','starting','running')").fetchone()[0]
-    cache = DATA / 'conditioning'
-    if not active and cache.exists():
-        for path in cache.iterdir():
-            if path.is_dir() and not path.is_symlink() and datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat() < cutoff:
-                shutil.rmtree(path)
+        cache = DATA / 'conditioning'
+        if not active and cache.exists():
+            for path in cache.iterdir():
+                if path.is_dir() and not path.is_symlink() and datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat() < cutoff:
+                    shutil.rmtree(path)
 
 
 if __name__ == '__main__':

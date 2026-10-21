@@ -84,12 +84,22 @@ def gpu_admission(job_id):
 def terminate(process):
     try:
         os.killpg(process.pid, signal.SIGTERM)
-        process.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
         process.wait()
+        return
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        process.poll()
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.1)
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
     except ProcessLookupError:
         pass
+    process.wait()
 
 
 def stage(job_id, name, command, directory, timeout=2400):
