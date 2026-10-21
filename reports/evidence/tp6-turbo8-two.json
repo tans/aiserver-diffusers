@@ -1,0 +1,231 @@
+{
+  "configuration": {
+    "url": "http://127.0.0.1:8190",
+    "count": 2,
+    "concurrency": 2,
+    "width": 512,
+    "height": 320,
+    "steps": 8,
+    "profile": "turbo8",
+    "prompt_file": null,
+    "reference_id": null,
+    "mixed": false,
+    "reference_prompt_file": null,
+    "output": "data/benchmarks/public-tp6-turbo8-two-final",
+    "timeout": 3600
+  },
+  "summary": {
+    "elapsed_seconds": 248.73604981898097,
+    "submitted": 2,
+    "succeeded": 2,
+    "success_rate": 1.0,
+    "videos_per_hour": 28.946346961929482,
+    "video_seconds_per_hour": 149.55612596996897,
+    "mean_latency_seconds": 195.58698583499063,
+    "p50_latency_seconds": 142.4410679639841,
+    "p95_latency_seconds": 248.73290370599716,
+    "quality_review": "pending human/visual review; success rate is not usable-video rate"
+  },
+  "runs": [
+    {
+      "index": 0,
+      "wall_seconds": 248.73290370599716,
+      "job": {
+        "id": "job_7ee2f5f360e4479cbeff67d2d0836e2b",
+        "model": "minimax-h3",
+        "task": "text_to_video",
+        "status": "succeeded",
+        "priority": 0,
+        "worker_id": "worker-a",
+        "result": {
+          "engine": "diffusers",
+          "stages_seconds": {
+            "conditioning": 0,
+            "dit": 71.23082777898526,
+            "decode": 35.59477875800803,
+            "export": 0.5021064290194772
+          },
+          "total_seconds": 107.35026541497791,
+          "worker_wall_seconds": 107.42269894399215,
+          "admission_wait_seconds": 0.07243138802004978,
+          "queue_wait_seconds": 141.31467,
+          "timing": {
+            "stages_seconds": {
+              "conditioning": 0,
+              "dit": 71.23082777898526,
+              "decode": 35.59477875800803,
+              "export": 0.5021064290194772
+            },
+            "total_seconds": 107.35026541497791
+          },
+          "conditioning_cache_hit": true,
+          "worker_id": "worker-a",
+          "devices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "profile": "turbo8",
+          "actual_forwards": 8,
+          "requested_steps": 8,
+          "frames": 124,
+          "width": 512,
+          "height": 320,
+          "model_evaluations": 8,
+          "requested_duration_seconds": 5,
+          "seed": 20261021,
+          "workflow": "h3service.worker",
+          "gpu_memory": {
+            "peak_memory_used_mib": 8659
+          },
+          "actual_duration_seconds": 5.166666666666667,
+          "resources": {
+            "peak_process_tree_pss_bytes": 13094040576,
+            "peak_gpu_used_mib": {
+              "0": 8618,
+              "1": 8658,
+              "2": 8638,
+              "3": 8618,
+              "4": 8659,
+              "5": 8642
+            },
+            "mean_gpu_utilization": {
+              "0": 34.06,
+              "1": 24.3,
+              "2": 24.52,
+              "3": 23.26,
+              "4": 24.7,
+              "5": 24.32
+            }
+          },
+          "media_revision": "09a901ca301f1efee0a325da01a03facf99ab28bb1625210cc27d7a475355580",
+          "download_url": "/v1/jobs/job_7ee2f5f360e4479cbeff67d2d0836e2b/result"
+        },
+        "error_code": null,
+        "error_message": null,
+        "created_at": "2026-10-21T05:36:01.998643+00:00",
+        "updated_at": "2026-10-21T05:40:10.669194+00:00",
+        "request": {
+          "model": "minimax-h3",
+          "task": "text_to_video",
+          "input": {
+            "prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."
+          },
+          "parameters": {
+            "width": 512,
+            "height": 320,
+            "duration_seconds": 5,
+            "steps": 8,
+            "seed": 20261021,
+            "profile": "turbo8"
+          },
+          "options": {}
+        },
+        "prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."
+      }
+    },
+    {
+      "index": 1,
+      "wall_seconds": 142.4410679639841,
+      "job": {
+        "id": "job_026071a57c4c4f7b8566f94715984aae",
+        "model": "minimax-h3",
+        "task": "text_to_video",
+        "status": "succeeded",
+        "priority": 0,
+        "worker_id": "worker-a",
+        "result": {
+          "engine": "diffusers",
+          "stages_seconds": {
+            "conditioning": 0,
+            "dit": 67.70617746500648,
+            "decode": 35.09448801801773,
+            "export": 0.5021695909963455
+          },
+          "total_seconds": 103.32569728101953,
+          "worker_wall_seconds": 141.08161374100018,
+          "admission_wait_seconds": 37.755913700995734,
+          "queue_wait_seconds": 37.897483,
+          "timing": {
+            "stages_seconds": {
+              "conditioning": 0,
+              "dit": 67.70617746500648,
+              "decode": 35.09448801801773,
+              "export": 0.5021695909963455
+            },
+            "total_seconds": 103.32569728101953
+          },
+          "conditioning_cache_hit": true,
+          "worker_id": "worker-a",
+          "devices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "profile": "turbo8",
+          "actual_forwards": 8,
+          "requested_steps": 8,
+          "frames": 124,
+          "width": 512,
+          "height": 320,
+          "model_evaluations": 8,
+          "requested_duration_seconds": 5,
+          "seed": 20261022,
+          "workflow": "h3service.worker",
+          "gpu_memory": {
+            "peak_memory_used_mib": 8659
+          },
+          "actual_duration_seconds": 5.166666666666667,
+          "resources": {
+            "peak_process_tree_pss_bytes": 14406794240,
+            "peak_gpu_used_mib": {
+              "0": 8618,
+              "1": 8658,
+              "2": 8638,
+              "3": 8618,
+              "4": 8659,
+              "5": 8642
+            },
+            "mean_gpu_utilization": {
+              "0": 39.583333333333336,
+              "1": 25.5,
+              "2": 26.354166666666668,
+              "3": 27.020833333333332,
+              "4": 26.645833333333332,
+              "5": 26.854166666666668
+            }
+          },
+          "media_revision": "9193a27eed43383f48d52a17b682d462b0cd68b2b0f67e6c254c56d9d7cf8514",
+          "download_url": "/v1/jobs/job_026071a57c4c4f7b8566f94715984aae/result"
+        },
+        "error_code": null,
+        "error_message": null,
+        "created_at": "2026-10-21T05:36:01.998436+00:00",
+        "updated_at": "2026-10-21T05:38:23.227858+00:00",
+        "request": {
+          "model": "minimax-h3",
+          "task": "text_to_video",
+          "input": {
+            "prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."
+          },
+          "parameters": {
+            "width": 512,
+            "height": 320,
+            "duration_seconds": 5,
+            "steps": 8,
+            "seed": 20261022,
+            "profile": "turbo8"
+          },
+          "options": {}
+        },
+        "prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."
+      }
+    }
+  ]
+}

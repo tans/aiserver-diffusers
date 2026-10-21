@@ -18,3 +18,9 @@
 The active window starts at the earliest job creation time plus its recorded queue/admission wait and ends at the last terminal update. It includes model staging, reloads, decoding, scheduling gaps and polling overhead; it excludes the initial wait for the existing service. This is a short measured window, not a one-hour soak test or a measured human usable-video rate. The first pair has extra cold model-staging contention. A fair TP6 throughput comparison remains separate.
 
 Raw requests, job IDs, per-stage timings, sampled GPU/PSS telemetry and output hashes are in `evidence/dual-tp3-turbo8-ten.json`; derived window calculations are in `evidence/dual-tp3-turbo8-ten-analysis.json`.
+
+## Separate TP6 comparison
+
+The final FP32-row-output TP6 configuration completed two cached-prompt Turbo8 tasks serially: 103.33 and 107.35 s inference time, mean 105.34 s. Its active window was 210.77 s, or 34.16 videos/hour. Comparing these short observed windows gives 61.37 / 34.16 ≈ 1.80× throughput for dual TP3, at an approximately 7.4% longer mean individual inference time. The sample sizes differ (ten versus two), and no statistical confidence or hour-long capacity is asserted. Raw TP6 batch wall 248.74 s includes initial wait for the independent cancellation probe. See evidence/tp6-turbo8-two.json and its analysis JSON.
+
+Four-frame samples from the first and last ten-job seeds showed stable characters, living-room geometry and continuous pose/mouth movement without the old grid corruption. This is a limited visual sample, not a ten-video audio or lip-sync rating.

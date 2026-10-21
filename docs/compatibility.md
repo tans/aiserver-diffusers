@@ -4,7 +4,7 @@
 
 Diffusers 0.41.0 corresponds to upstream tag commit `086bf9578c0f4acbc66e48cd1e7cc26befd9e10f`. Transformers 5.20.1, Accelerate 1.15.0, Safetensors 0.8.0, FastAPI 0.142.2 and Uvicorn 0.54.0 are installed into the independent venv. See requirements.txt and the host's data/environment-packages.json for observed dependencies.
 
-POWER9 torch 2.10.0 / CUDA binaries and remaining existing host dependencies are read-only imports via a `.pth` path. This is package-write isolation, not a fully copied binary environment. The existing venv must remain available; bootstrap must never run its pip. No sm_80+ binary is installed for V100. The SDPA backend is initially the only selectable backend.
+POWER9 torch 2.10.0 / CUDA binaries and remaining existing host dependencies are read-only imports via a `.pth` path. This is package-write isolation, not a fully copied binary environment. The existing venv must remain available; bootstrap must never run its pip. No sm_80+ binary is installed for V100. SDPA is the public default. A directly loaded sm70 H3 native extension is an explicit CLI candidate; one complete seed passed, so it remains outside public admission.
 
 ## Local DiT adapter
 
@@ -22,4 +22,4 @@ Initial admission only permits verified H3 video profiles and geometries. `minim
 
 ## Current verification boundaries
 
-Six-card strict weight loading succeeded at approximately 6.6 GiB of local parameters per rank. The initial forward diagnostic found FP16 text-projection overflow; that projection was promoted to FP32. A complete native T2VA 20-forward generation and video/audio decode have now passed at 512×320/124f. This is the only initial API geometry. TP3 and dual TP3 denoising passed with the expandable allocator; cold concurrency and complete dual export remain gates. Turbo, native-kernel acceleration, quantization and offload remain experimental candidates.
+Six-card strict weight loading succeeded at approximately 6.6 GiB of local parameters per rank. The initial forward diagnostic found FP16 text-projection overflow; that projection was promoted to FP32. A complete native T2VA 20-forward generation and video/audio decode have now passed at 512×320/124f. This is the only initial API geometry. TP3 and dual TP3 completed full exports with the expandable allocator. Two different-prompt cold quality tasks and ten consecutive cached-prompt Turbo8 tasks passed after the FP32 row-output fix. Reference Turbo4 passed two seeds on TP6. Quantization, DiT group offload and cross-task residency are unimplemented; native-kernel acceleration remains a CLI candidate.
