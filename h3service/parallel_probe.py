@@ -100,4 +100,7 @@ def main():
 
 
 if __name__ == '__main__':
+    def stopped(*_):
+        raise KeyboardInterrupt("Benchmark stopped")
+    signal.signal(signal.SIGTERM, stopped)
     main()

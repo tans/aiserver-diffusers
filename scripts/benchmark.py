@@ -19,6 +19,7 @@ def main():
     p.add_argument("--width", type=int, default=512)
     p.add_argument("--height", type=int, default=320)
     p.add_argument("--steps", type=int, default=20)
+    p.add_argument("--profile", choices=["quality", "turbo8"], default="quality")
     p.add_argument("--reference-id")
     p.add_argument("--output", default="data/benchmarks/run")
     p.add_argument("--timeout", type=int, default=3600)
@@ -38,19 +39,31 @@ def main():
             inp["references"] = {"images": [a.reference_id]}
         payload = {"model": "minimax-h3", "task": "ref2av" if a.reference_id else "text_to_video", "input": inp,
                    "parameters": {"width": a.width, "height": a.height, "duration_seconds": 5,
-                                  "steps": a.steps, "seed": 20261021 + index}}
+                                  "steps": a.steps, "seed": 20261021 + index, "profile": a.profile}}
+        submitted = None
         try:
             submitted = request("/v1/jobs", payload)
             while time.monotonic() - start < a.timeout:
-                row = request(submitted["poll_url"])
+                try:
+                    row = request(submitted["poll_url"])
+                except OSError:
+                    # A transient API restart must not orphan an accepted job.
+                    time.sleep(2)
+                    continue
                 if row["status"] in {"succeeded", "failed", "cancelled"}:
                     break
                 time.sleep(2)
             else:
                 row = {"status": "observation_timeout", "id": submitted["job_id"]}
+                try:
+                    row["cancel_response"] = request(submitted["poll_url"] + ":cancel", {})
+                except OSError as error:
+                    row["cancel_error"] = str(error)
             return {"index": index, "wall_seconds": time.monotonic() - start, "job": row}
         except (OSError, ValueError, urllib.error.HTTPError) as e:
-            return {"index": index, "wall_seconds": time.monotonic() - start, "job": {"status": "submission_failed", "error": str(e)}}
+            return {"index": index, "wall_seconds": time.monotonic() - start,
+                    "job": {"status": "observation_failed" if submitted else "submission_failed",
+                            "id": submitted["job_id"] if submitted else None, "error": str(e)}}
     started = time.monotonic()
     with concurrent.futures.ThreadPoolExecutor(max_workers=a.concurrency) as pool:
         rows = list(pool.map(run, range(a.count)))
