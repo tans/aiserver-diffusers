@@ -4,8 +4,8 @@
 
 - Host `minixm`: POWER9 / ppc64le, six Tesla V100 SXM2 16 GB.
 - GPU topology: 0–2 and 3–5 each form NV2 groups; cross-group links are SYS.
-- NUMA CPU nodes are 0 and 8; six additional memory-only nodes 250–255 exist. Never restrict a large CPU model allocation to the approximately 16 GB CPU-local nodes alone.
-- RAM 126 GiB total, approximately 80 GiB available at audit; swap 1.5 GiB, partially occupied. Both workers retaining complete CPU model copies is unsafe without measurement.
+- NUMA CPU nodes are 0 and 8; six additional memory-only nodes 250–255 exist. Live zone inspection reports Normal on CPU nodes 0/8 and Movable on nodes 250–255. Treat the 126 GiB total as NUMA memory inventory, not as a proven 126 GiB ordinary CPU model allocation budget.
+- Linux reports 126 GiB total and approximately 80 GiB available at the initial audit; CPU-local Normal nodes total approximately 32 GiB; swap 1.5 GiB, partially occupied. Both workers retaining complete CPU model copies is unsafe without measurement.
 - Free storage: `/home` on root filesystem 205 GiB, `/srv` 113 GiB. Reuse weight files read-only; do not copy a full model tree.
 - Existing read-only Python stack: Python 3.12, torch 2.10.0, diffusers 0.41.0, transformers 5.20.1, accelerate 1.15.0, safetensors 0.8.0, FastAPI 0.142.2, uvicorn 0.54.0, PyAV 12.3.0, numpy 2.5.4, PEFT 0.21.2. New runtime must isolate package writes.
 - Existing diffusers contains MiniMax H3 transformer, modular blocks, video/audio VAE and scheduler. Installed distribution has no direct_url commit metadata; source integrity must be pinned separately before deployment.

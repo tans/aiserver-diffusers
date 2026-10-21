@@ -1,9 +1,23 @@
-# Benchmark status
+# Benchmark results — active validation
 
-No completed Diffusers generation benchmark is available yet. Initial strict TP6 loading is approximately 18 seconds with 7,163 MB of parameter storage per rank after FP32-sensitive text projection. Initial failed numeric probes are retained in data/probes and must not count as successful video throughput.
+## Native Diffusers baseline
 
-`scripts/benchmark.sh` submits real jobs to the independent API and writes JSON, CSV and Markdown, recording wall latency, success rate, videos per hour and generated seconds per hour. Completion is not a quality rating: usable-video proportion requires visual/audio review.
+| Probe | Result | Measured time | Memory |
+| --- | --- | --- | --- |
+| Native Qwen3-VL conditioning, text only | Passed; 34 tokens | 25.18 s, including 23.21 s TE load | Six-GPU balanced placement, not TP |
+| TP6, 512×320, 124 frames, 20 actual forwards | Passed | 17.79 s model load; 86.27 s denoise; 111.32 s process | 8,131.68 MiB peak CUDA allocation on rank 0 |
+| Native video/audio VAE + MP4 | Passed | 23.91 s process | 5,679.57 MiB peak CUDA allocation |
+| TP3, standard allocator, one forward | Failed OOM | Not a throughput result | Allocation failed near capacity |
+| TP3, expandable allocator, one forward | Passed | 18.60 s load; 4.28 s forward | 14,589.59 MiB rank 0 peak CUDA allocation |
+| First simultaneous dual TP3 load | Failed SIGKILL | 35.53 s until failure | 25.19 GiB sampled process-tree PSS |
+| Staggered dual TP3, 20 forwards each | Denoising passed; one MP4 failed due to shared temporary filename | Approximately 75 s per denoiser | 17.36 GiB sampled tree PSS; GPU used up to 15,530 MiB |
 
-Required progression: one finite forward; 512×320/124f cold and cache-warm T2VA; one image reference; TP3; dual TP3; then higher resolutions and 10/20-job workloads only for modes passing memory and correctness gates.
+The shared temporary filename has been corrected and a complete pair is being regenerated. Failed attempts remain recorded and are not counted as successful videos. A sum of separately measured stages is not a measured end-to-end API latency.
 
-For comparison, recent LightX2V 864×480/124f/20-forward T2VA jobs took approximately 303–307 seconds (TE ~40 s, DiT ~214–216 s, decode ~46–53 s). This is a different resolution from the first Diffusers probe. Match input, geometry, forward count and cold/warm conditions before claiming a speedup.
+## Benchmark tooling
+
+`scripts/benchmark.sh` submits real jobs to the independent API and writes JSON, CSV and Markdown: wall latency, success rate, videos/hour and generated seconds/hour. Reports identify queue waiting via job timestamps and worker stage timing. Completion is not a quality rating; usable-video proportion needs visual/audio review.
+
+Required remaining progression: API cold/warm, image reference, full dual TP3 with cold/warm conditioning, higher-resolution feasibility, continuous 10 jobs and 20 mixed jobs. Larger geometry is rejected by the API until passed.
+
+Recent original LightX2V 864×480/124f/20-forward T2VA jobs took approximately 303–307 seconds (TE ~40 s, DiT ~214–216 s, decode ~46–53 s). Their geometry differs from this Diffusers baseline; these values do not establish an engine speedup. Match geometry, input, seed, forward count and cold/warm state for an A/B claim.

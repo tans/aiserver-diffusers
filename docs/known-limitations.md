@@ -1,14 +1,17 @@
-# Known limitations — active implementation
+# Known limitations — 2026-10-21
 
-- No engine configuration has completed end-to-end acceptance yet; API generation admission remains disabled.
-- TP6 weight loading is proven; TP3 and dual TP3 have not yet passed actual forward/memory checks.
-- LoRA, INT8, custom V100 attention and CPU group offload are not enabled.
-- The current design restarts the DiT subprocess for every task. Conditioning can be cached, but the DiT is not yet resident across jobs.
-- Reference videos/audio are not admitted. Image-reference blocks require full encode/denoise/decode validation.
-- Initial native VAE uses a single GPU with spatial tiling; this may be slower than the original six-card decode.
-- The original service and new service share GPU admission. While original jobs run, new benchmarks wait and their wall-clock waiting time is not inference latency.
-- CPU process-tree PSS and GPU telemetry are sampled. Per-forward transfer time and an exact CPU/GPU compute/idle decomposition are not instrumented yet; do not infer them from wall time.
-- The new venv reuses the audited POWER9 torch stack read-only; removing or changing shared binary dependencies can invalidate the new runtime.
-- The API currently listens on loopback 8190. Public routing is a later deployment step; an active unit and HTTP health response do not prove generation success.
-- Result files expire after the configured retention period; metadata remains. No source weights or old-service media are subject to retention.
-- No operating-system reboot has been performed. Recovery logic and enabled units are not evidence of a successful real reboot.
+- Native Diffusers T2VA, TP6, 512×320, 124 frames, 20 actual forwards has completed video/audio VAE decoding and MP4 verification. Only this geometry/task is initially admitted by the API.
+- TP3 with the default CUDA allocator failed with OOM. `expandable_segments:True` passed a single forward and two concurrent 20-forward denoisers. Full dual MP4 acceptance and cold-conditioning concurrency are separate gates.
+- Simultaneous dual model loading suffered one SIGKILL. Kernel logs are unavailable to the service account, so host OOM is a hypothesis rather than a confirmed cause. Staged loading and CPU allocator trimming reduced sampled process-tree PSS on the subsequent attempt.
+- Turbo4/8 and the native sm70 H3 attention kernel have experimental CLI routes. They are not public API profiles until complete multi-seed video validation.
+- INT8 and CPU group offload are not enabled. The working FP16 TP3 candidate does not require weight quantization, but its activation margin is small.
+- DiT is reloaded per task. Conditioning is cached with a source/model/input version key and complete-entry publication. Resident DiT across tasks remains future work.
+- Reference videos/audio are not admitted. Image-reference encoding and complete generation are still being validated. Original image pixel resolution is preserved by the patchify GEMM adaptation.
+- Native VAE uses one GPU with spatial tiling; encoding and decoding use staged subprocesses. CPU FFmpeg export is cancellable.
+- Original and new services coordinate through the existing GPU lock. Queue waiting for original jobs must not be reported as inference compute time.
+- CPU PSS and GPU metrics are sampled. Exact per-forward H2D time and compute/idle decomposition are not instrumented.
+- The independent venv reuses the audited POWER9 torch binaries read-only. It isolates package writes but still depends on those shared binary files.
+- API is loopback-only on port 8190. The server account cannot alter the root-managed cloud tunnel; no public endpoint is claimed.
+- Only the API and default TP6 worker are enabled. Cleanup units are supplied but retention is not enabled until generation acceptance. Worker B remains gated.
+- No OS reboot has been performed. Process restart recovery does not establish real reboot recovery.
+- Full high-resolution, ten-job and twenty-job mixed workloads remain outstanding. Issue #1 remains open.

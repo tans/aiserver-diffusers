@@ -16,10 +16,10 @@ Q/K/V projections are column sharded by attention head. Both SwiGLU halves are p
 
 ## Public contract
 
-The new service implements the original model/task/input/parameters/options request envelope, file uploads, job submission/list/status/cancel, MP4 results and thumbnails. Job IDs and timestamps follow the existing shape. Original data is not imported into the new SQLite database.
+The new service implements the original model/task/input/parameters/options request envelope, file uploads, job submission/list/status/cancel, MP4 results and thumbnails. Job IDs and timestamps follow the existing shape. Duration maps to the nearest legal frame slot, preserving existing requests such as 5.17 seconds → 124 frames. Original data is not imported into the new SQLite database.
 
 Initial admission only permits verified H3 video profiles and geometries. `minimax-h3-fast`, Krea image generation, SeedVR super resolution and unverified LoRA requests are rejected instead of silently mapping to a different engine. Video/audio references are withheld until separately verified; image references are the first reference milestone. Running cancellation is an extension over the original queued-only cancellation.
 
 ## Current verification boundaries
 
-Six-card strict weight loading succeeded at approximately 6.6 GiB of local parameters per rank. The initial forward diagnostic found FP16 text-projection overflow; that projection was promoted to FP32. A finite full forward and end-to-end decode are still required before any profile is enabled. TP3, dual TP3, Turbo, quantization and offload remain candidates.
+Six-card strict weight loading succeeded at approximately 6.6 GiB of local parameters per rank. The initial forward diagnostic found FP16 text-projection overflow; that projection was promoted to FP32. A complete native T2VA 20-forward generation and video/audio decode have now passed at 512×320/124f. This is the only initial API geometry. TP3 and dual TP3 denoising passed with the expandable allocator; cold concurrency and complete dual export remain gates. Turbo, native-kernel acceleration, quantization and offload remain experimental candidates.
