@@ -149,7 +149,18 @@ def load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
         modes[name] = mode
         promote = mode in {"row", "swiglu"} or name == "context_embedder"
         _replace(model, name, TPLinear(module, mode, promote, 64.0 if mode == "row" else 1.0))
-    index = json.loads((root / "diffusion_pytorch_model.safetensors.index.json").read_text())["weight_map"]
+    declared = json.loads((root / "diffusion_pytorch_model.safetensors.index.json").read_text())["weight_map"]
+    # Existing converted checkpoint index still names temporary shards. Inspect
+    # the real files without modifying that shared production metadata.
+    index = {}
+    for file in sorted(root.glob("*.safetensors")):
+        with safe_open(file, framework="pt", device="cpu") as state:
+            for key in state.keys():
+                if key in index:
+                    raise ValueError(f"Duplicate checkpoint key {key}")
+                index[key] = file.name
+    if set(index) != set(declared):
+        raise ValueError("Checkpoint header inventory differs from declared tensor keys")
     expected = dict(model.named_parameters())
     missing = set(expected) - set(index)
     unexpected = set(index) - set(expected) - {"adaln_t_table"}
