@@ -45,15 +45,19 @@ def main():
     p.add_argument("--height", type=int, default=320)
     p.add_argument("--steps", type=int, default=20)
     p.add_argument("--profile", choices=["quality", "turbo4", "turbo8"], default="quality")
+    p.add_argument("--seed", type=int, default=20261021, help="First seed; each submission increments it")
     p.add_argument("--prompt-file")
     p.add_argument("--reference-id")
     p.add_argument("--mixed", action="store_true", help="Use one reference Turbo4 job per ten submissions")
     p.add_argument("--reference-prompt-file")
+    p.add_argument("--reference-profile", choices=["quality", "turbo4", "turbo8"], default="turbo4")
     p.add_argument("--output", default="data/benchmarks/run")
     p.add_argument("--timeout", type=int, default=3600)
     a = p.parse_args()
     if not 1 <= a.count <= 100 or not 1 <= a.concurrency <= 2:
         p.error("count must be 1–100 and concurrency 1–2")
+    if not 0 <= a.seed <= 2**63 - a.count:
+        p.error("seed sequence must fit unsigned 63-bit values")
     if a.mixed and not a.reference_id:
         p.error("mixed workloads require an uploaded reference-id")
     def request(path, payload=None):
@@ -79,10 +83,10 @@ def main():
         inp = {"prompt": Path(prompt_file).read_text().strip() if prompt_file else "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."}
         if is_ref:
             inp["references"] = {"images": [a.reference_id]}
-        profile, steps = ("turbo4", 4) if a.mixed and is_ref else (a.profile, a.steps)
+        profile, steps = (a.reference_profile, {"quality": 20, "turbo4": 4, "turbo8": 8}[a.reference_profile]) if a.mixed and is_ref else (a.profile, a.steps)
         payload = {"model": "minimax-h3", "task": "ref2av" if is_ref else "text_to_video", "input": inp,
                    "parameters": {"width": a.width, "height": a.height, "duration_seconds": 5,
-                                  "steps": steps, "seed": 20261021 + index, "profile": profile}}
+                                  "steps": steps, "seed": a.seed + index, "profile": profile}}
         submitted = None
         try:
             submitted = request("/v1/jobs", payload)

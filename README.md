@@ -7,7 +7,7 @@ Independent MiniMax H3 audio/video inference service for IBM POWER9 and six V100
 - Repository: https://github.com/tans/aiserver-diffusers
 - Implementation and acceptance issue: https://github.com/tans/aiserver-diffusers/issues/1
 
-The verified public geometry is **512×320, 124 frames, 24 fps**, with native Diffusers video and stereo-audio VAEs. Text generation supports `quality` (at least 20 actual forwards) and `turbo8` (exactly eight). One uploaded image is supported by `ref2av` with `turbo4` (exactly four). Video/audio references and larger public geometries remain gated. This is an experimental service while full acceptance continues.
+The verified public geometry is **512×320, 124 frames, 24 fps**, with native Diffusers video and stereo-audio VAEs. Text generation supports `quality` (at least 20 actual forwards) and `turbo8` (exactly eight). Image-reference admission is temporarily withheld: a full-size Turbo4 sample failed visual quality despite passing numerical and container checks. See issue #2. Video/audio references and larger public geometries remain gated. This is an experimental service while full acceptance continues.
 
 ## Isolation
 
@@ -38,7 +38,7 @@ For the base profile, set `profile` to `quality` and `steps` to 20. Unknown mode
 
 Run `scripts/bootstrap.sh` on the audited POWER9 host. Dependency pins are in `requirements.txt`; Diffusers 0.41.0 corresponds to tag commit `086bf9578c0f4acbc66e48cd1e7cc26befd9e10f`.
 
-The default enabled API and worker units are supplied under `deploy/`. The API listens on loopback 8190. The separate tunnel forwards cloud port 8190. The current deployed mode is dual TP3: worker A uses GPUs 0–2 and worker B uses GPUs 3–5 for admitted text tasks. Worker A acquires all six GPUs for reference tasks, after existing three-card work drains. All generation coordinates with the old service's existing all-GPU lock, so queue waiting must be separated from actual inference timing.
+The default enabled API and worker units are supplied under `deploy/`. The API listens on loopback 8190. The separate tunnel forwards cloud port 8190. The current deployed mode is dual TP3: worker A uses GPUs 0–2 and worker B uses GPUs 3–5 for admitted text tasks. Worker A acquires all six GPUs for separately admitted TP6 tasks, after existing three-card work drains. All generation coordinates with the old service's existing all-GPU lock, so queue waiting must be separated from actual inference timing.
 
 A worker restart explicitly terminates its process groups and fails interrupted work; queued jobs persist in SQLite. Running cancellation reaps the stage process group. Low storage rejects new work. The cleanup timer only expires this service's terminal artifacts and retains task metadata; its current enablement is recorded in STATE.md.
 
@@ -51,7 +51,7 @@ A worker restart explicitly terminates its process groups and fails interrupted 
 
 Ten consecutive Turbo8 dual-TP3 tasks passed. Active-window throughput was 61.37 videos/hour, versus 34.16 videos/hour for a separate two-task serial TP6 comparison (about 1.80×). Per-task inference means were 113.15 and 105.34 seconds, respectively. These are short cached-prompt windows with unequal sample sizes, not hour-long capacity promises. Whole-batch timings including old-service waiting are retained separately. See [ten-job evidence](reports/dual-tp3-ten.md).
 
-Two different-prompt cold twenty-forward dual tasks passed after the documented numerical fix. Actual-forward worker SIGKILL/restart and running cancellation also passed. A twenty-job public mixed workload is active; host reboot recovery is not yet validated.
+Two different-prompt cold twenty-forward dual tasks passed after the documented numerical fix. Actual-forward worker SIGKILL/restart and running cancellation also passed. The first mixed workload was stopped after a reference Turbo4 visual-quality failure; reference admission is withheld while the same-input comparison runs. Host reboot recovery is not yet validated.
 
 Switch modes at an idle boundary (queued jobs are preserved):
 
@@ -71,9 +71,9 @@ Real generation benchmark:
 
 Benchmarks produce JSON, CSV and Markdown. A completed video is not automatically a visually or audibly usable video; quality review is recorded separately. Models, generated media and credentials are never committed.
 
-## Image reference
+## Image reference — currently withheld
 
-Upload with `POST /v1/files` using multipart field `file`. Use its returned `file_id` in `input.references.images`:
+The following contract is retained, but reference submission is currently rejected while issue #2 is investigated. Upload with `POST /v1/files` using multipart field `file`; use its returned `file_id` in `input.references.images` after admission is restored:
 
 ```json
 {

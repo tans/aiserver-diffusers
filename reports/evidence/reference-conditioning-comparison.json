@@ -1,0 +1,45 @@
+{
+  "condition_latents.0": {
+    "old_shape": [
+      1,
+      24,
+      1,
+      296,
+      128
+    ],
+    "new_shape": [
+      1,
+      24,
+      1,
+      296,
+      128
+    ],
+    "equal": true,
+    "max_abs_diff": 0.0,
+    "rms_diff": 0.0
+  },
+  "prompt_embeds": {
+    "old_shape": [
+      1,
+      9538,
+      5120
+    ],
+    "new_shape": [
+      1,
+      9538,
+      5120
+    ],
+    "equal": true,
+    "max_abs_diff": 0.0,
+    "rms_diff": 0.0
+  },
+  "text_token_tags": {
+    "old_shape": [
+      9538
+    ],
+    "new_shape": [
+      9538
+    ],
+    "equal": true
+  }
+}
