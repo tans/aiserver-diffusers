@@ -126,6 +126,8 @@ def stage(job_id, name, command, directory, timeout=2400):
                PYTORCH_ALLOC_CONF="expandable_segments:True",
                LD_LIBRARY_PATH="/usr/local/cuda-12.4/lib64:" + env.get("LD_LIBRARY_PATH", ""))
     with (directory / f"{name}.log").open("ab", buffering=0) as log:
+        if len(DEVICES) == 3:
+            command = ["numactl", "--cpunodebind=" + ("0" if DEVICES[0] == 0 else "8"), *command]
         process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         ACTIVE["process"] = process
         try:

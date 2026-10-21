@@ -2,6 +2,6 @@
 Description=Bounded host memory for Diffusers inference workers
 
 [Slice]
-MemoryHigh=20G
+MemoryHigh=22G
 MemoryMax=24G
 MemorySwapMax=1G
