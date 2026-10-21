@@ -11,6 +11,8 @@ import sys
 import threading
 import time
 import traceback
+import urllib.error
+import urllib.request
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -55,6 +57,22 @@ def tp3_eligible(row):
             and p.get("profile", "quality") in cap.get("dual_tp3_profiles", []))
 
 
+def legacy_work_waiting():
+    """Give pending original-service jobs a chance before entering shared GPUs."""
+    base = os.getenv("H3_LEGACY_API", "http://127.0.0.1:8090")
+    if not base:
+        return False
+    try:
+        for status in ("running", "queued"):
+            with urllib.request.urlopen(base.rstrip("/") + "/v1/jobs?limit=1&status=" + status, timeout=2) as response:
+                if json.load(response)["total"]:
+                    return True
+    except (OSError, ValueError, KeyError):
+        # The mandatory old GPU lock still governs admission if its API is down.
+        pass
+    return False
+
+
 @contextmanager
 def gpu_admission(job_id):
     locks = DATA / "locks"
@@ -73,6 +91,11 @@ def gpu_admission(job_id):
                 check_cancel(job_id)
                 if time.monotonic() - started > 7200:
                     raise TimeoutError("GPU admission timed out")
+                # Check before acquiring the old lock, never while holding it:
+                # waiting for a legacy job while holding SH would deadlock it.
+                if i == 1 and legacy_work_waiting():
+                    time.sleep(1)
+                    continue
                 try:
                     fcntl.flock(handle, mode | fcntl.LOCK_NB)
                     break
