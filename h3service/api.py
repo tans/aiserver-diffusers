@@ -106,10 +106,16 @@ def submit(req: JobRequest):
         reject("MODEL_NOT_READY", "This Diffusers workflow is not yet verified", 503)
     if any(str(k).startswith("_") for k in req.input):
         reject("INVALID_INPUT", "Reserved input fields are not public")
+    if req.input.keys() - {"prompt", "references"}:
+        reject("UNSUPPORTED_INPUT", "Supported input fields are prompt and uploaded references")
+    if req.options.keys() - {"priority"}:
+        reject("UNSUPPORTED_OPTIONS", "Only priority is supported by this service")
     prompt = req.input.get("prompt")
     if not isinstance(prompt, str) or not 1 <= len(prompt.strip()) <= 2000:
         reject("INVALID_PROMPT", "prompt must contain 1–2000 characters")
     p = dict(req.parameters)
+    if p.keys() - {"width", "height", "duration_seconds", "steps", "seed", "profile", "loras", "frames"}:
+        reject("UNSUPPORTED_PARAMETERS", "Unverified sampling, memory and output options are not accepted")
     if "frames" in p:
         reject("FRAMES_NOT_PUBLIC", "Use duration_seconds")
     duration = p.get("duration_seconds")
@@ -139,6 +145,8 @@ def submit(req: JobRequest):
     if type(seed) is not int or not 0 <= seed < 2**63:
         reject("INVALID_SEED", "seed must be a nonnegative 63-bit integer")
     inp = dict(req.input)
+    if task == "text_to_video" and inp.get("references") and any(inp["references"].values()):
+        reject("UNSUPPORTED_REFERENCE", "Use ref2av for reference inputs")
     if task == "ref2av":
         refs = inp.get("references")
         if not isinstance(refs, dict):
