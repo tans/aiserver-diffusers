@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .store import DATA, JOBS, ROOT, cancelled, claim, database, now, update
+from .telemetry import Monitor
 
 STOP = threading.Event()
 ACTIVE = {"job": None, "process": None, "stage": "idle"}
@@ -150,7 +151,7 @@ def execute(row):
     cache = DATA / "conditioning" / conditioning_key(payload)
     cache.mkdir(parents=True, exist_ok=True)
     cond = cache / "condition.safetensors"
-    with gpu_admission(job_id):
+    with gpu_admission(job_id), Monitor() as monitor:
         update(job_id, status="running")
         if not cond.exists():
             temp = cache / (WORKER_ID + ".safetensors")
@@ -172,6 +173,8 @@ def execute(row):
         output = directory / "output.mp4"
         times["decode"] = stage(job_id, "decode", [str(PYTHON), "-m", "h3service.decode",
             "--latents", str(latent), "--output", str(output)], directory)
+        metrics = monitor.finish()
+        (directory / "resources.json").write_text(json.dumps(metrics, indent=2))
     check_cancel(job_id)
     ACTIVE["stage"] = "export"
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(output), "-frames:v", "1", "-vf", "scale=360:-2",
@@ -181,6 +184,7 @@ def execute(row):
               "actual_forwards": p["steps"], "requested_steps": p["steps"],
               "frames": p["frames"], "width": p["width"], "height": p["height"],
               "actual_duration_seconds": p["frames"] / 24,
+              "resources": {k: v for k, v in metrics.items() if k != "samples"},
               "media_revision": hashlib.sha256(output.read_bytes()).hexdigest(),
               "download_url": f"/v1/jobs/{job_id}/result"}
     (directory / "performance.json").write_text(json.dumps(report, indent=2))
