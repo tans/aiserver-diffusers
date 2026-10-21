@@ -11,6 +11,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=["tp6", "dual-tp3"])
     args = parser.parse_args()
+    if DATA.resolve() != (ROOT / "data").resolve():
+        parser.error("Host service units require the production data directory")
     path = DATA / "verified-capabilities.json"
     cap = json.loads(path.read_text())
     if args.mode == "dual-tp3" and not cap.get("dual_tp3_verified"):

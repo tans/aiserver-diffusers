@@ -214,7 +214,7 @@ def execute(row):
     cache = DATA / "conditioning" / conditioning_key(payload)
     cache.mkdir(parents=True, exist_ok=True)
     cond = cache / "condition.safetensors"
-    with gpu_admission(job_id), Monitor(DEVICES) as monitor:
+    with gpu_admission(job_id), Monitor(DEVICES, directory / "resources.json") as monitor:
         admitted = time.perf_counter()
         admission_wait = admitted - started
         queue_wait = (datetime.now(timezone.utc) - datetime.fromisoformat(row["created_at"])).total_seconds()
