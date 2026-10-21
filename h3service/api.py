@@ -130,6 +130,8 @@ def submit(req: JobRequest):
         reject("INVALID_DIMENSIONS", "Dimensions must be positive multiples of 32; area <= 983040")
     if (width, height, frames) not in [tuple(x) for x in cap.get("geometries", [])]:
         reject("UNVERIFIED_GEOMETRY", "Requested geometry has not passed Diffusers admission", 422)
+    if [width, height, frames] not in cap.get("task_geometries", {}).get(task, cap.get("geometries", [])):
+        reject("UNVERIFIED_GEOMETRY", "Requested workflow has not passed this geometry", 422)
     profile = p.get("profile", "quality")
     if profile not in ("quality", "turbo4", "turbo8") or profile not in cap.get("profiles", []):
         reject("UNVERIFIED_PROFILE", "Requested profile has not passed admission")
