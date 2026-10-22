@@ -4,7 +4,8 @@ Issue truth: https://github.com/tans/aiserver-diffusers/issues/1 (closed 2026-10
 
 ## Current deployment
 
-- Independent server directory `/home/minixm/AIserver-diffusers`, own venv and SQLite/data. Public API http://minixm.minapp.xin:8190, docs `/docs`; requested 8188 penetration alias is being added as a loopback TCP proxy. Original service remains `/home/minixm/AIserver` on public 8189.
+- Independent server directory `/home/minixm/AIserver-diffusers`, own venv and SQLite/data. Public API http://minixm.minapp.xin:8190, docs `/docs`; the 8188 penetration alias is live as a loopback TCP proxy to the same API. Original service remains `/home/minixm/AIserver` on public 8189.
+- White-theme web console (commit `ce9616f`) is live on 8188 and 8190: index page, per-job detail page, and `/llms.txt` / `/llms-full.txt` machine-readable documentation. Verified over the public 8188 entry on 2026-10-22; 8189 legacy health stayed 200. Only the API unit was restarted; workers and the proxy unit were untouched.
 - API, worker A, worker B and the separate reverse tunnel are enabled. User linger is enabled. `scripts.set_mode dual-tp3` was exercised successfully; latest `/ready` reports A [0,1,2], B [3,4,5]. Text quality/Turbo8 uses dual TP3; reference Turbo8 obtains exclusive TP6 through A.
 - Public geometry remains 512×320/124 frames. Current admission: text quality (20+ actual forwards), text Turbo8 (eight), and one-image reference Turbo8 (eight) on exclusive TP6. Turbo4 is withheld after the visual-quality failure recorded in issue #2.
 - Daily cleanup timer is enabled; next scheduled run 2026-10-22 00:00 CST. It expires this service's seven-day terminal job artifacts/cache and preserves metadata; inputs are not automatically pruned. No old-service data is touched.
