@@ -1,0 +1,20 @@
+[Unit]
+Description=Local TCP target for the existing public 8188 penetration route
+After=network.target aiserver-diffusers-api.service
+Requires=aiserver-diffusers-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/minixm/AIserver-diffusers
+ExecStart=/home/minixm/AIserver-diffusers/.venv/bin/python -m h3service.port_proxy
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+Environment=H3_PROXY_LISTEN_HOST=127.0.0.1
+Environment=H3_PROXY_LISTEN_PORT=8188
+Environment=H3_PROXY_UPSTREAM_HOST=127.0.0.1
+Environment=H3_PROXY_UPSTREAM_PORT=8190
+UMask=0077
+
+[Install]
+WantedBy=default.target

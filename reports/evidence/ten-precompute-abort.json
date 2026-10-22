@@ -1,0 +1,13 @@
+{
+  "reason": "Stale legacy rows blocked GPU admission; batch aborted before any inference, then admission recency was corrected",
+  "cancelled": [
+    {
+      "job_id": "job_605f49449c684550aea0714041deb59f",
+      "status": "starting"
+    },
+    {
+      "job_id": "job_5f453cf427f14bd2849c13b509f076cb",
+      "status": "starting"
+    }
+  ]
+}

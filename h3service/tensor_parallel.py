@@ -54,8 +54,18 @@ class TPLinear(nn.Module):
         return self._forward(x)
 
     def _forward(self, x):
+        original = x
         x = (x / self.scale).to(self.weight.dtype) if self.scale != 1 else x.to(self.weight.dtype)
-        output = F.linear(x, self.weight, None if self.mode == "row" else self.bias)
+        if os.getenv("H3_TRACE_FINITE") == "1" and not bool(torch.isfinite(x).all()):
+            raise FloatingPointError(f"Linear input cast overflow: mode={self.mode}, scale={self.scale}, absmax={original.abs().max().item()}")
+        # FP16 output packing can overflow even when inputs and the true
+        # projection result are finite. Keep tensor-core inputs/weights FP16
+        # and request an FP32 output before any TP reduction or rescaling.
+        if self.mode == "row" and os.getenv("H3_FP32_LINEAR_OUTPUT", "1") == "1":
+            output = torch.mm(x.reshape(-1, x.shape[-1]), self.weight.t(), out_dtype=torch.float32)
+            output = output.reshape(*x.shape[:-1], self.weight.shape[0])
+        else:
+            output = F.linear(x, self.weight, None if self.mode == "row" else self.bias)
         if self.mode == "row" and dist.get_world_size() > 1:
             # FP32 collectives avoid FP16 overflow in a sum of rank partials.
             output = output.float()
@@ -122,6 +132,15 @@ def _replace(root, name, value):
 
 
 def load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
+    from .memory import model_staging_lock
+    with model_staging_lock(dist.get_rank() == 0):
+        dist.barrier()
+        result = _load_transformer(checkpoint, device, attention)
+        dist.barrier()
+        return result
+
+
+def _load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
     from diffusers.models.transformers.transformer_minimax_h3 import (
         MiniMaxH3Transformer3DModel, MiniMaxH3Attention,
     )
@@ -238,4 +257,5 @@ def load_transformer(checkpoint: str, device: torch.device, attention="sdpa"):
     return model, {"load_seconds": time.perf_counter() - started,
                    "tp_size": world, "rank": rank, "checkpoint": str(root),
                    "local_parameter_bytes": sum(p.numel() * p.element_size() for p in model.parameters()),
+                   "fp32_row_output": os.getenv("H3_FP32_LINEAR_OUTPUT", "1") == "1",
                    "attention": attention, "checkpoint_keys": len(index)}

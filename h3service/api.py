@@ -19,6 +19,27 @@ from pydantic import BaseModel, ConfigDict, Field
 from .store import DATA, INPUTS, JOBS, ROOT, database, now, public_job
 
 app = FastAPI(title="AIserver Diffusers", version="0.1.0")
+WEB = ROOT / "web"
+
+
+@app.get("/", include_in_schema=False)
+def home():
+    return FileResponse(WEB / "index.html", media_type="text/html")
+
+
+@app.get("/detail.html", include_in_schema=False)
+def detail_page():
+    return FileResponse(WEB / "detail.html", media_type="text/html")
+
+
+@app.get("/llms.txt", include_in_schema=False)
+def llms_index():
+    return FileResponse(WEB / "llms.txt", media_type="text/plain; charset=utf-8")
+
+
+@app.get("/llms-full.txt", include_in_schema=False)
+def llms_full():
+    return FileResponse(WEB / "llms-full.txt", media_type="text/plain; charset=utf-8")
 
 
 class JobRequest(BaseModel):
@@ -55,9 +76,11 @@ def ready():
     cap = capabilities()
     with database() as con:
         workers = [dict(r) for r in con.execute("SELECT * FROM workers")]
-    alive = [w for w in workers if (datetime.now(timezone.utc) - datetime.fromisoformat(w["heartbeat"])).total_seconds() < 30]
-    return {"status": "ready" if cap.get("enabled") and alive else "not_ready", "engine": "diffusers",
-            "capabilities": cap, "workers": alive}
+    alive = [w for w in workers if (datetime.now(timezone.utc) - datetime.fromisoformat(w["heartbeat"])).total_seconds() < 30
+             and Path(f"/proc/{w['pid']}").exists()]
+    draining = (DATA / "drain").exists()
+    return {"status": "ready" if cap.get("enabled") and alive and not draining else "not_ready", "engine": "diffusers",
+            "capabilities": cap, "workers": alive, "draining": draining}
 
 
 @app.get("/v1/models")
@@ -104,10 +127,19 @@ def submit(req: JobRequest):
         reject("MODEL_NOT_READY", "This Diffusers workflow is not yet verified", 503)
     if any(str(k).startswith("_") for k in req.input):
         reject("INVALID_INPUT", "Reserved input fields are not public")
+    if req.input.keys() - {"prompt", "references"}:
+        reject("UNSUPPORTED_INPUT", "Supported input fields are prompt and uploaded references")
+    if req.options.keys() - {"priority"}:
+        reject("UNSUPPORTED_OPTIONS", "Only priority is supported by this service")
+    references = req.input.get("references")
+    if references is not None and (not isinstance(references, dict) or references.keys() - {"images", "videos", "audios"}):
+        reject("INVALID_REFERENCE", "references must contain only images, videos and audios")
     prompt = req.input.get("prompt")
     if not isinstance(prompt, str) or not 1 <= len(prompt.strip()) <= 2000:
         reject("INVALID_PROMPT", "prompt must contain 1–2000 characters")
     p = dict(req.parameters)
+    if p.keys() - {"width", "height", "duration_seconds", "steps", "seed", "profile", "loras", "frames"}:
+        reject("UNSUPPORTED_PARAMETERS", "Unverified sampling, memory and output options are not accepted")
     if "frames" in p:
         reject("FRAMES_NOT_PUBLIC", "Use duration_seconds")
     duration = p.get("duration_seconds")
@@ -119,28 +151,35 @@ def submit(req: JobRequest):
         reject("INVALID_DIMENSIONS", "Dimensions must be positive multiples of 32; area <= 983040")
     if (width, height, frames) not in [tuple(x) for x in cap.get("geometries", [])]:
         reject("UNVERIFIED_GEOMETRY", "Requested geometry has not passed Diffusers admission", 422)
+    if [width, height, frames] not in cap.get("task_geometries", {}).get(task, cap.get("geometries", [])):
+        reject("UNVERIFIED_GEOMETRY", "Requested workflow has not passed this geometry", 422)
     profile = p.get("profile", "quality")
-    if profile not in ("quality", "turbo8") or profile not in cap.get("profiles", []):
+    if profile not in ("quality", "turbo4", "turbo8") or profile not in cap.get("profiles", []):
         reject("UNVERIFIED_PROFILE", "Requested profile has not passed admission")
-    if profile != "quality" and task not in cap.get(profile + "_tasks", []):
+    if task not in cap.get(profile + "_tasks", ["text_to_video"] if profile == "quality" else []):
         reject("UNVERIFIED_PROFILE", "Requested profile has not passed this workflow")
-    steps = p.get("steps", 8 if profile == "turbo8" else 20)
+    if [width, height, frames] not in cap.get("profile_geometries", {}).get(profile, cap.get("geometries", [])):
+        reject("UNVERIFIED_GEOMETRY", "Requested profile has not passed this geometry", 422)
+    steps = p.get("steps", {"quality": 20, "turbo4": 4, "turbo8": 8}[profile])
     if type(steps) is not int or not 4 <= steps <= 64:
         reject("INVALID_STEPS", "steps must be an integer between 4 and 64")
     if p.get("loras"):
         reject("UNVERIFIED_LORA", "LoRA support has not passed verification")
-    if (profile == "quality" and steps < 20) or (profile == "turbo8" and steps != 8):
-        reject("UNVERIFIED_PROFILE", "quality requires >=20 forwards; turbo8 requires exactly 8")
+    if (profile == "quality" and steps < 20) or (profile != "quality" and steps != {"turbo4": 4, "turbo8": 8}[profile]):
+        reject("UNVERIFIED_PROFILE", "steps must match the admitted profile")
     seed = p.get("seed", secrets.randbelow(2**31))
     if type(seed) is not int or not 0 <= seed < 2**63:
         reject("INVALID_SEED", "seed must be a nonnegative 63-bit integer")
     inp = dict(req.input)
+    inp["prompt"] = prompt.strip()
+    if task == "text_to_video" and inp.get("references") and any(inp["references"].values()):
+        reject("UNSUPPORTED_REFERENCE", "Use ref2av for reference inputs")
     if task == "ref2av":
         refs = inp.get("references")
         if not isinstance(refs, dict):
             reject("REFERENCE_REQUIRED", "ref2av requires references")
         resolved = {}
-        for kind, maximum in (("images", 9), ("videos", 3), ("audios", 3)):
+        for kind, maximum in (("images", cap.get("max_image_references", 1)), ("videos", 3), ("audios", 3)):
             ids = refs.get(kind, [])
             if not isinstance(ids, list) or len(ids) > maximum:
                 reject("REFERENCE_LIMIT", "Invalid reference count")

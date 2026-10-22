@@ -5,8 +5,28 @@
   "sensitive_dtype": "float32",
   "attention": "sdpa",
   "actual_forwards": 20,
-  "candidate_tp_sizes": [6, 3],
-  "default_tp_size": 6,
-  "verified": false,
-  "cpu_offload": false
+  "candidate_tp_sizes": [
+    6,
+    3
+  ],
+  "default_tp_size": 3,
+  "verified": true,
+  "cpu_offload": false,
+  "verified_geometries": [
+    [
+      512,
+      320,
+      124
+    ]
+  ],
+  "verified_tasks": [
+    "text_to_video"
+  ],
+  "verified_tp_sizes": [
+    6,
+    3
+  ],
+  "row_projection_output_dtype": "float32",
+  "validation_note": "Two different-prompt cold dual-TP3 twenty-forward tasks passed.",
+  "configuration_role": "Descriptive verified recipe; runtime admission and selected mode use data/verified-capabilities.json."
 }

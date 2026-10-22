@@ -16,6 +16,8 @@ from .telemetry import Monitor
 
 
 def main():
+    from .memory import prefer_inference_eviction
+    prefer_inference_eviction()
     p = argparse.ArgumentParser()
     p.add_argument("--condition", required=True)
     p.add_argument("--output-dir", required=True)

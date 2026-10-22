@@ -1,17 +1,19 @@
 # Known limitations — 2026-10-21
 
-- Native Diffusers T2VA, TP6, 512×320, 124 frames, 20 actual forwards has completed video/audio VAE decoding and MP4 verification. Only this geometry/task is initially admitted by the API.
-- TP3 with the default CUDA allocator failed with OOM. `expandable_segments:True` passed a single forward and two concurrent 20-forward denoisers. Full dual MP4 acceptance has now passed for one cache-warm pair; cold-conditioning concurrency remains a separate gate.
-- Simultaneous dual model loading suffered one SIGKILL. Kernel logs are unavailable to the service account, so host OOM is a hypothesis rather than a confirmed cause. Staged loading and CPU allocator trimming reduced sampled process-tree PSS on the subsequent attempt.
-- Turbo4/8 and the native sm70 H3 attention kernel have experimental CLI routes. They are not public API profiles until complete multi-seed video validation.
-- INT8 and CPU group offload are not enabled. The working FP16 TP3 candidate does not require weight quantization, but its activation margin is small.
-- DiT is reloaded per task. Conditioning is cached with a source/model/input version key and complete-entry publication. Resident DiT across tasks remains future work.
-- Reference videos/audio are not admitted. Image-reference encoding and complete generation are still being validated. Original image pixel resolution is preserved by the patchify GEMM adaptation.
-- Native VAE uses one GPU with spatial tiling; encoding and decoding use staged subprocesses. CPU FFmpeg export is cancellable.
-- Original and new services coordinate through the existing GPU lock. Queue waiting for original jobs must not be reported as inference compute time.
-- CPU PSS and GPU metrics are sampled. Exact per-forward H2D time and compute/idle decomposition are not instrumented.
-- The independent venv reuses the audited POWER9 torch binaries read-only. It isolates package writes but still depends on those shared binary files.
-- API is loopback-only on port 8190. The server account cannot alter the root-managed cloud tunnel; no public endpoint is claimed.
-- Only the API and default TP6 worker are enabled. Cleanup units are supplied but retention is not enabled until generation acceptance. Worker B remains gated.
-- No OS reboot has been performed. Process restart recovery does not establish real reboot recovery.
-- Full high-resolution, ten-job and twenty-job mixed workloads remain outstanding. Issue #1 remains open.
+Reference quality correction: public reference admission is currently withheld (issue #2). Turbo4 seed 20261030 passed finite/container checks but failed full-size visual review; the mixed workload was aborted. Historical successful executions below do not establish usable-video quality.
+
+- Public admission is 512×320, 124 frames: text `quality` (20+ actual forwards), text `turbo8` (eight), one-image `ref2av / turbo4` (four). Complete higher-resolution Turbo8 acceptance is pending. Video/audio references, image generation and super resolution are unsupported.
+- Current public deployment uses dual TP3 for eligible small text tasks; reference tasks use worker A with exclusive TP6. Ten consecutive Turbo8 jobs and two different-prompt cold quality jobs passed. The twenty-job mixed public workload is active. These are acceptance windows, not long-term production soak evidence.
+- Observed short-window cached-prompt throughput is 61.37 videos/hour for ten dual-TP3 tasks, versus 34.16/hour for two serial TP6 tasks. Sample sizes differ. Whole-batch wall throughput including initial legacy-service waiting was 40.98 and 28.95/hour. No one-hour or human usable-video-rate claim is made.
+- FP16 TP3 has little activation headroom: sampled GPU used memory reached about 15.5 GiB/card. Only verified geometries/profiles are eligible. Standard allocator failed; expandable segments are required.
+- The first cold dual pair exposed FP16 FFN row-projection overflow at forward 17. Identical captured input reproduced it; FP32 row GEMM output fixed the capture and both full cold jobs. No NaN clamping or replacement is used. See reports/numeric-fix.md.
+- Root kernel logs confirmed host memory-policy OOM during the initial simultaneous-load attempt. Original and new APIs, workers and relays were killed and restarted. Subsequent health responses established recovery, not uninterrupted availability. Current inference uses a shared slice with MemoryHigh 22 GiB, MemoryMax 24 GiB, MemorySwapMax 1 GiB and OOM eviction priority 800; subsequent slice max/oom/oom_kill counters remain zero. No deliberate cgroup-OOM acceptance has been performed.
+- SIGKILL during actual denoising and a separate running cancellation passed: API remained available, interrupted work failed explicitly after worker restart, and GPU process groups were reaped. These do not establish host reboot recovery. No OS reboot has been performed.
+- DiT is reloaded per task. INT8 weights/TE, cross-task model residency and DiT block/group offload are not implemented or measured. FP16 TP3 holds its DiT shards during denoising without DiT weight offload. The three-card original text encoder does use CPU weight placement; that is separate from DiT group offload.
+- Native video VAE uses spatial tiling on one GPU; native stereo audio VAE uses FP32. Components run in staged subprocesses, and FFmpeg is cancellable. VAE/export does not yet overlap the next task on the same GPU group.
+- Conditioning cache entries include source/dependency/model-file identity and full input content, with complete-entry publication. Model identity uses file metadata, not a full rehash of every large checkpoint on each request.
+- Original and new services coordinate through the existing GPU lock. New work yields to recent old-service queue entries; stale historic rows do not block forever. Queue/GPU waiting is separate from inference time.
+- CPU PSS and GPU metrics are sampled. Exact per-forward H2D time and compute/idle decomposition are not instrumented. Human speech quality and lip synchronization have not been rated; valid audio/video streams alone do not prove perceptual quality.
+- The independent venv reuses existing POWER9 torch binaries read-only. Package writes are isolated, but the original binary installation remains a runtime dependency.
+- The independent public tunnel exposes port 8190; the original service remains on 8189. Public documentation, actual submission and result download/hash passed. No source or package writes were made to the original service.
+- Issue #1 stays open until the remaining acceptance scope and reboot boundary are resolved.

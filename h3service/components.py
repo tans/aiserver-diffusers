@@ -15,11 +15,17 @@ torch.backends.cudnn.enabled = False
 MODEL_ROOT = Path("/srv/models/lightx2v/h3/model_root")
 
 
-def video_vae(device):
+def video_vae(device, tile_size=256):
+    if tile_size not in (0, 256, 512):
+        raise ValueError("VAE tile size must be 0 (disabled), 256 or 512")
     model = AutoencoderKLMiniMaxH3.from_pretrained(
         str(MODEL_ROOT / "vae"), torch_dtype=torch.float16, local_files_only=True)
-    model.enable_tiling(tile_sample_min_height=256, tile_sample_min_width=256,
-                        tile_sample_min_overlap_height=64, tile_sample_min_overlap_width=64)
+    if tile_size:
+        model.enable_tiling(tile_sample_min_height=tile_size, tile_sample_min_width=tile_size,
+                            tile_sample_min_overlap_height=tile_size // 4,
+                            tile_sample_min_overlap_width=tile_size // 4)
+    else:
+        model.disable_tiling()
     return model.eval().to(device)
 
 

@@ -11,6 +11,31 @@ import urllib.request
 from pathlib import Path
 
 
+def write_csv(rows, path):
+    """Keep detailed engine measurements beside caller-observed wall latency."""
+    columns = ["index", "job_id", "task", "status", "profile", "width", "height", "frames", "seed",
+               "actual_forwards", "conditioning_cache_hit", "wall_seconds", "queue_wait_seconds",
+               "admission_wait_seconds", "inference_seconds", "conditioning_seconds", "dit_seconds",
+               "decode_seconds", "export_seconds", "peak_gpu_used_mib", "peak_process_tree_pss_bytes",
+               "output_sha256"]
+    with Path(path).open("w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=columns)
+        writer.writeheader()
+        for row in rows:
+            job = row["job"]
+            result = job.get("result") or {}
+            stages = result.get("stages_seconds", {})
+            record = {key: result.get(key, "") for key in columns}
+            record.update(index=row["index"], job_id=job.get("id", ""), task=job.get("task", ""),
+                          status=job["status"], wall_seconds=row["wall_seconds"],
+                          inference_seconds=result.get("total_seconds", ""),
+                          peak_gpu_used_mib=result.get("gpu_memory", {}).get("peak_memory_used_mib", ""),
+                          peak_process_tree_pss_bytes=result.get("resources", {}).get("peak_process_tree_pss_bytes", ""),
+                          output_sha256=result.get("media_revision", ""))
+            record.update({name + "_seconds": stages.get(name, "") for name in ("conditioning", "dit", "decode", "export")})
+            writer.writerow(record)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--url", default="http://127.0.0.1:8190")
@@ -19,27 +44,49 @@ def main():
     p.add_argument("--width", type=int, default=512)
     p.add_argument("--height", type=int, default=320)
     p.add_argument("--steps", type=int, default=20)
-    p.add_argument("--profile", choices=["quality", "turbo8"], default="quality")
+    p.add_argument("--profile", choices=["quality", "turbo4", "turbo8"], default="quality")
+    p.add_argument("--seed", type=int, default=20261021, help="First seed; each submission increments it")
+    p.add_argument("--prompt-file")
     p.add_argument("--reference-id")
+    p.add_argument("--mixed", action="store_true", help="Use one reference job per ten submissions")
+    p.add_argument("--reference-prompt-file")
+    p.add_argument("--reference-profile", choices=["quality", "turbo4", "turbo8"], default="turbo8")
     p.add_argument("--output", default="data/benchmarks/run")
     p.add_argument("--timeout", type=int, default=3600)
     a = p.parse_args()
     if not 1 <= a.count <= 100 or not 1 <= a.concurrency <= 2:
         p.error("count must be 1–100 and concurrency 1–2")
+    if not 0 <= a.seed <= 2**63 - a.count:
+        p.error("seed sequence must fit unsigned 63-bit values")
+    if a.mixed and not a.reference_id:
+        p.error("mixed workloads require an uploaded reference-id")
     def request(path, payload=None):
         req = urllib.request.Request(a.url.rstrip("/") + path,
             data=json.dumps(payload).encode() if payload is not None else None,
             headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=30) as response:
             return json.load(response)
+    ready_deadline = time.monotonic() + 30
+    while True:
+        try:
+            if request("/ready")["status"] == "ready":
+                break
+        except (OSError, ValueError, KeyError):
+            pass
+        if time.monotonic() >= ready_deadline:
+            p.error("API did not become ready before benchmark submission")
+        time.sleep(0.2)
     def run(index):
         start = time.monotonic()
-        inp = {"prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."}
-        if a.reference_id:
+        is_ref = bool(a.reference_id) and (not a.mixed or index % 10 == 9)
+        prompt_file = a.reference_prompt_file if is_ref and a.reference_prompt_file else a.prompt_file
+        inp = {"prompt": Path(prompt_file).read_text().strip() if prompt_file else "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."}
+        if is_ref:
             inp["references"] = {"images": [a.reference_id]}
-        payload = {"model": "minimax-h3", "task": "ref2av" if a.reference_id else "text_to_video", "input": inp,
+        profile, steps = (a.reference_profile, {"quality": 20, "turbo4": 4, "turbo8": 8}[a.reference_profile]) if a.mixed and is_ref else (a.profile, a.steps)
+        payload = {"model": "minimax-h3", "task": "ref2av" if is_ref else "text_to_video", "input": inp,
                    "parameters": {"width": a.width, "height": a.height, "duration_seconds": 5,
-                                  "steps": a.steps, "seed": 20261021 + index, "profile": a.profile}}
+                                  "steps": steps, "seed": a.seed + index, "profile": profile}}
         submitted = None
         try:
             submitted = request("/v1/jobs", payload)
@@ -80,10 +127,7 @@ def main():
     output = Path(a.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.with_suffix(".json").write_text(json.dumps({"configuration": vars(a), "summary": summary, "runs": rows}, indent=2))
-    with output.with_suffix(".csv").open("w") as f:
-        writer = csv.writer(f)
-        writer.writerow(["index", "job_id", "status", "wall_seconds"])
-        writer.writerows((r["index"], r["job"].get("id"), r["job"]["status"], r["wall_seconds"]) for r in rows)
+    write_csv(rows, output.with_suffix(".csv"))
     output.with_suffix(".md").write_text("# Diffusers benchmark\n\n```json\n" + json.dumps(summary, indent=2) + "\n```\n")
     print(json.dumps(summary, indent=2))
 

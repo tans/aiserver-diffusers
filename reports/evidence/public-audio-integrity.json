@@ -1,0 +1,60 @@
+{
+  "job_01baed1c16544416b2d8d830ac38a378": {
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 512,
+        "height": 320,
+        "sample_rate": null,
+        "channels": null,
+        "duration": "5.166667",
+        "nb_frames": "124"
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null,
+        "sample_rate": "32000",
+        "channels": 2,
+        "duration": "5.175000",
+        "nb_frames": "163"
+      }
+    ],
+    "decoded_audio_finite": true,
+    "decoded_audio_rms": 0.2289150059223175,
+    "decoded_audio_peak": 0.9739345908164978,
+    "decoded_audio_abs_above_099_fraction": 0.0,
+    "note": "Signal/stream checks only; no human speech or lip-sync rating."
+  },
+  "job_a574d929cd314b8b86651d5b40637ade": {
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 512,
+        "height": 320,
+        "sample_rate": null,
+        "channels": null,
+        "duration": "5.166667",
+        "nb_frames": "124"
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null,
+        "sample_rate": "32000",
+        "channels": 2,
+        "duration": "5.175000",
+        "nb_frames": "163"
+      }
+    ],
+    "decoded_audio_finite": true,
+    "decoded_audio_rms": 0.07402122765779495,
+    "decoded_audio_peak": 0.7012452483177185,
+    "decoded_audio_abs_above_099_fraction": 0.0,
+    "note": "Signal/stream checks only; no human speech or lip-sync rating."
+  }
+}

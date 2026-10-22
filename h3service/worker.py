@@ -11,7 +11,10 @@ import sys
 import threading
 import time
 import traceback
+import urllib.error
+import urllib.request
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .store import DATA, JOBS, ROOT, cancelled, claim, database, now, update
@@ -20,7 +23,8 @@ from .telemetry import Monitor
 STOP = threading.Event()
 ACTIVE = {"job": None, "process": None, "stage": "idle"}
 WORKER_ID = os.getenv("H3_WORKER_ID", "worker-a")
-DEVICES = [int(x) for x in os.getenv("CUDA_VISIBLE_DEVICES", "0,1,2,3,4,5").split(",")]
+GROUP_DEVICES = [int(x) for x in os.getenv("CUDA_VISIBLE_DEVICES", "0,1,2,3,4,5").split(",")]
+DEVICES = list(GROUP_DEVICES)
 PYTHON = ROOT / ".venv/bin/python"
 
 
@@ -45,11 +49,42 @@ def check_cancel(job_id):
         raise Cancelled()
 
 
+def tp3_eligible(row):
+    cap = json.loads((DATA / "verified-capabilities.json").read_text())
+    p = json.loads(row["payload"])["parameters"]
+    return (cap.get("dual_tp3_verified") and row["task"] == "text_to_video"
+            and [p["width"], p["height"], p["frames"]] in cap.get("dual_tp3_geometries", [])
+            and p.get("profile", "quality") in cap.get("dual_tp3_profiles", []))
+
+
+def legacy_work_waiting():
+    """Give pending original-service jobs a chance before entering shared GPUs."""
+    base = os.getenv("H3_LEGACY_API", "http://127.0.0.1:8090")
+    if not base:
+        return False
+    try:
+        for status in ("running", "queued"):
+            with urllib.request.urlopen(base.rstrip("/") + "/v1/jobs?limit=200&status=" + status, timeout=2) as response:
+                rows = json.load(response)["items"]
+            for row in rows:
+                stamp = datetime.fromisoformat(row["updated_at"])
+                age = (datetime.now(timezone.utc) - stamp).total_seconds()
+                # Old crash-era queued/running rows must not block admission
+                # indefinitely. Active legacy GPU work always retains its EX lock.
+                if 0 <= age <= 7200:
+                    return True
+    except (OSError, ValueError, KeyError):
+        # The mandatory old GPU lock still governs admission if its API is down.
+        pass
+    return False
+
+
 @contextmanager
 def gpu_admission(job_id):
     locks = DATA / "locks"
     locks.mkdir(parents=True, exist_ok=True)
-    paths = [Path(os.getenv("H3_SHARED_GPU_LOCK", "/home/minixm/AIserver/data/gpu0-5.lock")),
+    paths = [locks / "admission-intent.lock",
+             Path(os.getenv("H3_SHARED_GPU_LOCK", "/home/minixm/AIserver/data/gpu0-5.lock")),
              *[locks / f"gpu-{i}.lock" for i in sorted(DEVICES)]]
     handles = []
     started = time.monotonic()
@@ -57,16 +92,24 @@ def gpu_admission(job_id):
         for i, path in enumerate(paths):
             handle = path.open("a+")
             handles.append(handle)
-            mode = fcntl.LOCK_SH if i == 0 and len(DEVICES) < 6 else fcntl.LOCK_EX
+            mode = fcntl.LOCK_SH if i <= 1 and len(DEVICES) < 6 else fcntl.LOCK_EX
             while True:
                 check_cancel(job_id)
                 if time.monotonic() - started > 7200:
                     raise TimeoutError("GPU admission timed out")
+                # Check before acquiring the old lock, never while holding it:
+                # waiting for a legacy job while holding SH would deadlock it.
+                if i == 1 and legacy_work_waiting():
+                    time.sleep(1)
+                    continue
                 try:
                     fcntl.flock(handle, mode | fcntl.LOCK_NB)
                     break
                 except BlockingIOError:
                     time.sleep(0.5)
+        # Once global admission succeeds, release intent. A waiting TP6 task
+        # can then reserve admission while existing TP3 work drains.
+        fcntl.flock(handles[0], fcntl.LOCK_UN)
         # Reject unrelated GPU workloads that do not participate in the lock.
         usage = subprocess.check_output(["nvidia-smi", "--query-gpu=index,memory.used", "--format=csv,noheader,nounits"],
                                         text=True, timeout=10)
@@ -108,9 +151,12 @@ def stage(job_id, name, command, directory, timeout=2400):
     started = time.perf_counter()
     env = os.environ.copy()
     env.update(OMP_NUM_THREADS="4", PYTHONUNBUFFERED="1", HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
+               CUDA_VISIBLE_DEVICES=",".join(str(i) for i in DEVICES),
                PYTORCH_ALLOC_CONF="expandable_segments:True",
                LD_LIBRARY_PATH="/usr/local/cuda-12.4/lib64:" + env.get("LD_LIBRARY_PATH", ""))
     with (directory / f"{name}.log").open("ab", buffering=0) as log:
+        if len(DEVICES) == 3:
+            command = ["numactl", "--cpunodebind=" + ("0" if DEVICES[0] == 0 else "8"), *command]
         process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         ACTIVE["process"] = process
         try:
@@ -152,6 +198,9 @@ def conditioning_key(payload):
 
 
 def execute(row):
+    global DEVICES
+    DEVICES = ([0, 1, 2, 3, 4, 5] if GROUP_DEVICES == [0, 1, 2] and not tp3_eligible(row)
+               else list(GROUP_DEVICES))
     job_id = row["id"]
     payload = json.loads(row["payload"])
     p = payload["parameters"]
@@ -165,7 +214,10 @@ def execute(row):
     cache = DATA / "conditioning" / conditioning_key(payload)
     cache.mkdir(parents=True, exist_ok=True)
     cond = cache / "condition.safetensors"
-    with gpu_admission(job_id), Monitor() as monitor:
+    with gpu_admission(job_id), Monitor(DEVICES, directory / "resources.json") as monitor:
+        admitted = time.perf_counter()
+        admission_wait = admitted - started
+        queue_wait = (datetime.now(timezone.utc) - datetime.fromisoformat(row["created_at"])).total_seconds()
         update(job_id, status="running")
         with (cache / "publish.lock").open("a+") as lock:
             while True:
@@ -206,10 +258,17 @@ def execute(row):
     check_cancel(job_id)
     times["export"] = stage(job_id, "export", ["ffmpeg", "-y", "-v", "error", "-i", str(output),
                     "-frames:v", "1", "-vf", "scale=360:-2", str(directory / "thumb.jpg")], directory, timeout=60)
-    report = {"engine": "diffusers", "stages_seconds": times, "total_seconds": time.perf_counter() - started,
+    inference_seconds = time.perf_counter() - admitted
+    report = {"engine": "diffusers", "stages_seconds": times, "total_seconds": inference_seconds,
+              "worker_wall_seconds": time.perf_counter() - started,
+              "admission_wait_seconds": admission_wait, "queue_wait_seconds": queue_wait,
+              "timing": {"stages_seconds": times, "total_seconds": inference_seconds},
               "conditioning_cache_hit": cache_hit, "worker_id": WORKER_ID, "devices": DEVICES,
               "profile": p.get("profile", "quality"), "actual_forwards": p["steps"], "requested_steps": p["steps"],
               "frames": p["frames"], "width": p["width"], "height": p["height"],
+              "model_evaluations": p["steps"], "requested_duration_seconds": p["duration_seconds"],
+              "seed": p["seed"], "workflow": "h3service.worker",
+              "gpu_memory": {"peak_memory_used_mib": max(metrics["peak_gpu_used_mib"].values(), default=0)},
               "actual_duration_seconds": p["frames"] / 24,
               "resources": {k: v for k, v in metrics.items() if k != "samples"},
               "media_revision": hashlib.sha256(output.read_bytes()).hexdigest(),
@@ -225,6 +284,7 @@ def execute(row):
 
 
 def main():
+    global DEVICES
     if DEVICES not in ([0, 1, 2, 3, 4, 5], [0, 1, 2], [3, 4, 5]):
         raise ValueError("Only audited full or three-card NVLink groups are permitted")
     if len(DEVICES) == 3:
@@ -240,7 +300,7 @@ def main():
                         "WHERE worker_id=? AND status IN ('starting','running')", (now(), WORKER_ID))
         threading.Thread(target=heartbeat, daemon=True).start()
         while not STOP.is_set():
-            row = claim(WORKER_ID)
+            row = claim(WORKER_ID, tp3_eligible if GROUP_DEVICES == [3, 4, 5] else None)
             if not row:
                 STOP.wait(1)
                 continue
@@ -258,6 +318,7 @@ def main():
                 update(row["id"], status="failed", error_code="INFERENCE_FAILED",
                        error_message=f"Diffusers {ACTIVE['stage']} stage failed")
             finally:
+                DEVICES = list(GROUP_DEVICES)
                 ACTIVE.update(job=None, process=None, stage="idle")
 
 

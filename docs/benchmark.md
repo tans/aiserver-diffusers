@@ -1,5 +1,7 @@
 # Benchmark results — active validation
 
+Reference quality correction: public reference admission is currently withheld (issue #2). Turbo4 seed 20261030 passed finite/container checks but failed full-size visual review; the mixed workload was aborted. Historical successful executions below do not establish usable-video quality.
+
 ## Native Diffusers baseline
 
 | Probe | Result | Measured time | Memory |
@@ -18,6 +20,18 @@ The shared temporary filename was corrected. A complete cache-warm pair subseque
 
 `scripts/benchmark.sh` submits real jobs to the independent API and writes JSON, CSV and Markdown: wall latency, success rate, videos/hour and generated seconds/hour. Reports identify queue waiting via job timestamps and worker stage timing. Completion is not a quality rating; usable-video proportion needs visual/audio review.
 
-Required remaining progression: API cold/warm, image reference, full dual TP3 with cold/warm conditioning, higher-resolution feasibility, continuous 10 jobs and 20 mixed jobs. Larger geometry is rejected by the API until passed.
+Passed additional gates: public Turbo8 submission/download, two reference Turbo4 seeds, two different-prompt cold dual quality tasks, ten consecutive dual Turbo8 tasks, running cancellation and crash recovery. The public twenty-job mixed workload is active. Complete higher-resolution generation and final matched cold LightX comparison remain pending. Larger public geometry is rejected until passed.
 
 Recent original LightX2V 864×480/124f/20-forward T2VA jobs took approximately 303–307 seconds (TE ~40 s, DiT ~214–216 s, decode ~46–53 s). Their geometry differs from this Diffusers baseline; these values do not establish an engine speedup. Match geometry, input, seed, forward count and cold/warm state for an A/B claim.
+
+
+## Final FP32 row-output Turbo8 mode comparison
+
+| Mode | Successful tasks | Mean inference | Active window | Active-window videos/hour | Whole-batch videos/hour |
+|---|---:|---:|---:|---:|---:|
+| TP6 serial | 2/2 | 105.34 s | 210.77 s | 34.16 | 28.95 |
+| Two TP3 groups | 10/10 | 113.15 s | 586.61 s | 61.37 | 40.98 |
+
+Same prompt, geometry, eight actual forwards and cached conditioning; fixed seed sequence begins at 20261021. All stages including per-job DiT reload and VAE are included in inference. Initial unrelated GPU waits are excluded only from the explicitly named active window. Different sample sizes and short windows limit comparison: observed throughput ratio about 1.80, individual mean latency about 7.4% longer. These are measured short-window rates, not sustained one-hour promises.
+
+See reports/dual-tp3-ten.md, reports/runtime-acceptance.md and raw reports/evidence JSON. CSV contains individual wall times. Per-job GPU/PSS samples and output hashes are in raw JSON; human usable-video rate and exact per-forward transfer/idle decomposition are unmeasured.

@@ -1,0 +1,24 @@
+# AIserver Diffusers
+
+> Experimental public MiniMax H3 video generation API using the Diffusers inference engine. The service runs separately from the legacy LightX2V service on port 8189.
+
+## Service entry points
+
+- API and web console: http://minixm.minapp.xin:8188/
+- Dedicated API tunnel: http://minixm.minapp.xin:8190/
+- Current readiness and admitted capabilities: http://minixm.minapp.xin:8188/ready
+- Interactive API reference: http://minixm.minapp.xin:8188/docs
+- OpenAPI schema: http://minixm.minapp.xin:8188/openapi.json
+
+## Documentation
+
+- [Full API guide](/llms-full.txt): endpoints, request envelope, limits, and examples
+- [Project README](https://github.com/tans/aiserver-diffusers/blob/main/README.md): deployment boundaries and implementation notes
+- [Architecture](https://github.com/tans/aiserver-diffusers/blob/main/docs/architecture.md): worker and GPU scheduling model
+- [Known limitations](https://github.com/tans/aiserver-diffusers/blob/main/docs/known-limitations.md): current operational and quality boundaries
+
+## Scope
+
+- Use `GET /ready` as the source of truth for tasks, profiles, geometries, and worker readiness before submitting a job.
+- The public interface is for H3 video generation. Image generation and super resolution are outside this service.
+- Do not send LightX2V-specific configuration to this API. Port 8189 remains the separate legacy service.

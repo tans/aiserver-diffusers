@@ -5,5 +5,22 @@
   "compute_dtype": "float16",
   "attention": "sdpa",
   "verified": false,
-  "status": "experimental: local LoRA tensor layout and quality require validation"
+  "verified_geometries": [
+    [
+      512,
+      320,
+      124
+    ]
+  ],
+  "verified_tasks": [
+    "ref2av"
+  ],
+  "verified_tp_sizes": [
+    6
+  ],
+  "row_projection_output_dtype": "float32",
+  "validation_note": "Earlier two seeds and numerical checks did not establish robust visual quality. See issue #2.",
+  "default_tp_size": 6,
+  "configuration_role": "Descriptive verified recipe; runtime admission and selected mode use data/verified-capabilities.json.",
+  "status": "withheld: full-size seed 20261030 reference output has block artifacts despite successful finite/MP4 checks"
 }

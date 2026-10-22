@@ -4,6 +4,23 @@
   "actual_forwards": 8,
   "compute_dtype": "float16",
   "attention": "sdpa",
-  "verified": false,
-  "status": "experimental: local LoRA tensor layout and quality require validation"
+  "verified": true,
+  "verified_geometries": [
+    [
+      512,
+      320,
+      124
+    ]
+  ],
+  "verified_tasks": [
+    "text_to_video"
+  ],
+  "verified_tp_sizes": [
+    6,
+    3
+  ],
+  "row_projection_output_dtype": "float32",
+  "validation_note": "Ten consecutive dual-TP3 API tasks passed; one cached prompt, ten seeds.",
+  "default_tp_size": 3,
+  "configuration_role": "Descriptive verified recipe; runtime admission and selected mode use data/verified-capabilities.json."
 }

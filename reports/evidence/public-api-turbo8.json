@@ -1,0 +1,86 @@
+{
+  "job": {
+    "id": "job_f3fe8ccc6ddf4befa12a42ca37ec2425",
+    "model": "minimax-h3",
+    "task": "text_to_video",
+    "status": "succeeded",
+    "priority": 0,
+    "worker_id": "worker-a",
+    "result": {
+      "engine": "diffusers",
+      "stages_seconds": {
+        "conditioning": 38.61266505898675,
+        "dit": 67.67796642999747,
+        "decode": 35.073800425976515,
+        "export": 0.5022849300003145
+      },
+      "total_seconds": 374.60590413599857,
+      "conditioning_cache_hit": false,
+      "worker_id": "worker-a",
+      "devices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "profile": "turbo8",
+      "actual_forwards": 8,
+      "requested_steps": 8,
+      "frames": 124,
+      "width": 512,
+      "height": 320,
+      "actual_duration_seconds": 5.166666666666667,
+      "resources": {
+        "peak_process_tree_pss_bytes": 21234930688,
+        "peak_gpu_used_mib": {
+          "0": 8658,
+          "1": 10644,
+          "2": 10644,
+          "3": 10644,
+          "4": 10645,
+          "5": 8682
+        },
+        "mean_gpu_utilization": {
+          "0": 28.106060606060606,
+          "1": 19.424242424242426,
+          "2": 19.075757575757574,
+          "3": 19.181818181818183,
+          "4": 19.393939393939394,
+          "5": 18.636363636363637
+        }
+      },
+      "media_revision": "fe108eb4d298a70849bec948f0e5e4ef67346735a367d8d109b74fef223a72e7",
+      "download_url": "/v1/jobs/job_f3fe8ccc6ddf4befa12a42ca37ec2425/result"
+    },
+    "error_code": null,
+    "error_message": null,
+    "created_at": "2026-10-21T04:41:57.007504+00:00",
+    "updated_at": "2026-10-21T04:57:53.137573+00:00",
+    "request": {
+      "model": "minimax-h3",
+      "task": "text_to_video",
+      "input": {
+        "prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."
+      },
+      "parameters": {
+        "duration_seconds": 5.17,
+        "width": 512,
+        "height": 320,
+        "profile": "turbo8",
+        "steps": 8,
+        "seed": 20261021
+      },
+      "options": {}
+    },
+    "prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."
+  },
+  "download": {
+    "content_type": "video/mp4",
+    "bytes": 647441,
+    "sha256": "fe108eb4d298a70849bec948f0e5e4ef67346735a367d8d109b74fef223a72e7",
+    "matches_metadata": true
+  },
+  "timing_note": "This earlier worker result total_seconds includes GPU admission waiting. Compare stage sums for compute; newer workers expose queue_wait_seconds separately."
+}

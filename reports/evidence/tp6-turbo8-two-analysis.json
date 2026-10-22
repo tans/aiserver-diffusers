@@ -1,0 +1,14 @@
+{
+  "active_window_seconds": 210.773275,
+  "active_window_videos_per_hour": 34.15992848239417,
+  "inference_seconds": [
+    107.35026541497791,
+    103.32569728101953
+  ],
+  "mean_inference_seconds": 105.33798134799872,
+  "cache_hits": [
+    true,
+    true
+  ],
+  "note": "Two serial TP6 tasks submitted simultaneously; initial wait for independent cancellation probe excluded by active-window start. Different sample sizes from ten-job dual run; not a one-hour controlled comparison."
+}

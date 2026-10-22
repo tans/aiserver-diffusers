@@ -2,12 +2,16 @@
 import subprocess
 import threading
 import time
+import json
+from pathlib import Path
 
 import psutil
 
 
 class Monitor:
-    def __init__(self):
+    def __init__(self, devices=None, output=None):
+        self.devices = set(devices) if devices is not None else None
+        self.output = Path(output) if output else None
         self.stop_event = threading.Event()
         self.peak_pss = 0
         self.peak_gpu = {}
@@ -34,6 +38,8 @@ class Monitor:
                 rows = []
                 for line in raw.splitlines():
                     i, memory, util = [int(s.strip()) for s in line.split(",")]
+                    if self.devices is not None and i not in self.devices:
+                        continue
                     self.peak_gpu[i] = max(memory, self.peak_gpu.get(i, 0))
                     self.util_sum[i] = self.util_sum.get(i, 0) + util
                     self.util_count[i] = self.util_count.get(i, 0) + 1
@@ -52,7 +58,9 @@ class Monitor:
         return self
 
     def __exit__(self, *_):
-        self.finish()
+        report = self.finish()
+        if self.output:
+            self.output.write_text(json.dumps(report, indent=2))
 
     def finish(self):
         self.stop_event.set()

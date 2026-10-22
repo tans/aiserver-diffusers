@@ -1,0 +1,176 @@
+[
+  {
+    "id": "job_eb5f1ecfd0094de7b176b35a3a9472a0",
+    "model": "minimax-h3",
+    "task": "text_to_video",
+    "status": "succeeded",
+    "priority": 0,
+    "worker_id": "probe-a",
+    "result": {
+      "engine": "diffusers",
+      "stages_seconds": {
+        "conditioning": 94.27927070698934,
+        "dit": 136.4223638229887,
+        "decode": 34.09347851498751,
+        "export": 0.5022424579947256
+      },
+      "total_seconds": 265.32153777600615,
+      "worker_wall_seconds": 275.5054975889798,
+      "admission_wait_seconds": 10.183955394983059,
+      "queue_wait_seconds": 11.061973,
+      "timing": {
+        "stages_seconds": {
+          "conditioning": 94.27927070698934,
+          "dit": 136.4223638229887,
+          "decode": 34.09347851498751,
+          "export": 0.5022424579947256
+        },
+        "total_seconds": 265.32153777600615
+      },
+      "conditioning_cache_hit": false,
+      "worker_id": "probe-a",
+      "devices": [
+        0,
+        1,
+        2
+      ],
+      "profile": "quality",
+      "actual_forwards": 20,
+      "requested_steps": 20,
+      "frames": 124,
+      "width": 512,
+      "height": 320,
+      "model_evaluations": 20,
+      "requested_duration_seconds": 5.17,
+      "seed": 20261021,
+      "workflow": "h3service.worker",
+      "gpu_memory": {
+        "peak_memory_used_mib": 15466
+      },
+      "actual_duration_seconds": 5.166666666666667,
+      "resources": {
+        "peak_process_tree_pss_bytes": 19027051520,
+        "peak_gpu_used_mib": {
+          "0": 15466,
+          "1": 15466,
+          "2": 15466
+        },
+        "mean_gpu_utilization": {
+          "0": 31.31404958677686,
+          "1": 26.760330578512395,
+          "2": 26.611570247933884
+        }
+      },
+      "media_revision": "b33b3512b681c455eaf4446dbb9ebf9a9ffb62c9370073c49358c9b16a1fd51d",
+      "download_url": "/v1/jobs/job_eb5f1ecfd0094de7b176b35a3a9472a0/result"
+    },
+    "error_code": null,
+    "error_message": null,
+    "created_at": "2026-10-21T05:09:34.244962+00:00",
+    "updated_at": "2026-10-21T05:14:10.633708+00:00",
+    "request": {
+      "model": "minimax-h3",
+      "task": "text_to_video",
+      "input": {
+        "prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."
+      },
+      "parameters": {
+        "width": 512,
+        "height": 320,
+        "duration_seconds": 5.17,
+        "steps": 20,
+        "seed": 20261021,
+        "profile": "quality"
+      },
+      "options": {}
+    },
+    "prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."
+  },
+  {
+    "id": "job_21f6af5f0dbb4e73b85557a028045dd0",
+    "model": "minimax-h3",
+    "task": "text_to_video",
+    "status": "succeeded",
+    "priority": 0,
+    "worker_id": "probe-b",
+    "result": {
+      "engine": "diffusers",
+      "stages_seconds": {
+        "conditioning": 49.65883053999278,
+        "dit": 149.96502944198437,
+        "decode": 36.086643058020854,
+        "export": 0.5022945379896555
+      },
+      "total_seconds": 236.23568248399533,
+      "worker_wall_seconds": 246.35474844498094,
+      "admission_wait_seconds": 10.11906357598491,
+      "queue_wait_seconds": 10.994871,
+      "timing": {
+        "stages_seconds": {
+          "conditioning": 49.65883053999278,
+          "dit": 149.96502944198437,
+          "decode": 36.086643058020854,
+          "export": 0.5022945379896555
+        },
+        "total_seconds": 236.23568248399533
+      },
+      "conditioning_cache_hit": false,
+      "worker_id": "probe-b",
+      "devices": [
+        3,
+        4,
+        5
+      ],
+      "profile": "quality",
+      "actual_forwards": 20,
+      "requested_steps": 20,
+      "frames": 124,
+      "width": 512,
+      "height": 320,
+      "model_evaluations": 20,
+      "requested_duration_seconds": 5.17,
+      "seed": 20261022,
+      "workflow": "h3service.worker",
+      "gpu_memory": {
+        "peak_memory_used_mib": 15470
+      },
+      "actual_duration_seconds": 5.166666666666667,
+      "resources": {
+        "peak_process_tree_pss_bytes": 16810880000,
+        "peak_gpu_used_mib": {
+          "3": 15466,
+          "4": 15467,
+          "5": 15470
+        },
+        "mean_gpu_utilization": {
+          "3": 34.91588785046729,
+          "4": 30.093457943925234,
+          "5": 29.345794392523363
+        }
+      },
+      "media_revision": "9f28f6b1ee78bba3ce2cabb51ff1ee2d4630a98cd644d45b91f9156f7a08b783",
+      "download_url": "/v1/jobs/job_21f6af5f0dbb4e73b85557a028045dd0/result"
+    },
+    "error_code": null,
+    "error_message": null,
+    "created_at": "2026-10-21T05:09:34.255033+00:00",
+    "updated_at": "2026-10-21T05:13:41.495242+00:00",
+    "request": {
+      "model": "minimax-h3",
+      "task": "text_to_video",
+      "input": {
+        "prompt": "A little girl in a red raincoat watches a small orange cat jump over a puddle. One continuous animated shot, gentle camera movement, clear natural environmental audio."
+      },
+      "parameters": {
+        "width": 512,
+        "height": 320,
+        "duration_seconds": 5.17,
+        "steps": 20,
+        "seed": 20261022,
+        "profile": "quality"
+      },
+      "options": {}
+    },
+    "prompt": "A little girl in a red raincoat watches a small orange cat jump over a puddle. One continuous animated shot, gentle camera movement, clear natural environmental audio."
+  }
+]

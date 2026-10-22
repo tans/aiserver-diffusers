@@ -1,0 +1,47 @@
+{
+  "id": "job_c09426e7c3a44270bcd85c996bead1b6",
+  "model": "minimax-h3",
+  "task": "text_to_video",
+  "status": "succeeded",
+  "backend_id": null,
+  "result": {
+    "frames": 124,
+    "requested_steps": 20,
+    "model_evaluations": 20,
+    "requested_duration_seconds": 5.166666666666667,
+    "actual_duration_seconds": 5.166666666666667,
+    "seed": 20261021,
+    "workflow": "minimax.py",
+    "timing": {
+      "stages_seconds": {
+        "conditioning": 40.79979176601046,
+        "dit": 124.06802075201995,
+        "decode": 43.690113001008285
+      },
+      "total_seconds": 208.55912821000675
+    },
+    "gpu_memory": {
+      "peak_memory_used_mib": 13094
+    },
+    "download_url": "/v1/jobs/job_c09426e7c3a44270bcd85c996bead1b6/result"
+  },
+  "error_code": null,
+  "error_message": null,
+  "created_at": "2026-10-21T04:34:48.243639+00:00",
+  "updated_at": "2026-10-21T04:42:20.639363+00:00",
+  "request": {
+    "model": "minimax-h3",
+    "task": "text_to_video",
+    "input": {
+      "prompt": "A cheerful boy in a blue and white hoodie greets his mother in a warm living room. A continuous 3D animated shot. Gentle movement and synchronized friendly speech."
+    },
+    "parameters": {
+      "width": 512,
+      "height": 320,
+      "duration_seconds": 5.166666666666667,
+      "steps": 20,
+      "seed": 20261021
+    },
+    "options": {}
+  }
+}

@@ -28,3 +28,5 @@
 4. TP3 cannot be advertised solely by selecting three CUDA devices. Enable dual workers only after a memory and throughput result.
 
 Audit is ongoing. Driver/CUDA details, P2P execution, package source pins, baseline model formats and performance will be added from measured evidence.
+
+Live systemd inspection also confirmed the existing global service drop-in binds memory to CPU NUMA nodes 0 and 8, excluding memory-only HBM nodes 250–255. This existing guard was not modified. The approximately 32 GiB CPU-local budget is therefore a material constraint despite the 126 GiB inventory.

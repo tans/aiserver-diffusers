@@ -17,19 +17,24 @@ from safetensors.torch import load_file
 from .components import video_vae, audio_vae
 
 
-def decode(source, output):
+def decode(source, output, vae_tile_size=256):
+    from .memory import prefer_inference_eviction
+    prefer_inference_eviction()
     torch.set_grad_enabled(False)
     torch.set_num_threads(4)
     started = time.perf_counter()
     latent = load_file(source)
     device = "cuda:0"
-    vae = video_vae(device)
+    vae = video_vae(device, tile_size=vae_tile_size)
     times = {"video_load": time.perf_counter() - started}
     t = time.perf_counter()
     x = latent["video"].to(device)
     mean = torch.tensor(vae.config.latents_mean, device=device).view(1, -1, 1, 1, 1)
     std = torch.tensor(vae.config.latents_std, device=device).view(1, -1, 1, 1, 1)
     raw = vae.decode((x * std + mean).to(vae.dtype), return_dict=False)[0].float().cpu()
+    if not bool(torch.isfinite(raw).all()):
+        raise FloatingPointError("Non-finite raw video VAE output before pixel clamping")
+    raw_range = {"min": float(raw.min()), "max": float(raw.max())}
     pixels = (raw * torch.tensor((0.229, 0.224, 0.225)).view(1, 3, 1, 1, 1)
               + torch.tensor((0.485, 0.456, 0.406)).view(1, 3, 1, 1, 1)).clamp(0, 1)
     if not bool(torch.isfinite(pixels).all()):
@@ -67,7 +72,8 @@ def decode(source, output):
     temp.replace(output)
     pcm.unlink()
     times["encode_mp4"] = time.perf_counter() - t
-    report = {"engine": "diffusers", "video_latents_denormalized": True,
+    report = {"engine": "diffusers", "video_latents_denormalized": True, "vae_tile_size": vae_tile_size,
+              "video_raw_finite": True, "video_raw_range": raw_range,
               "frames": count, "width": width, "height": height, "fps": 24,
               "audio_samples": samples.shape[-1], "sample_rate": 32000,
               "timing_seconds": times, "total_seconds": time.perf_counter() - started,
@@ -80,5 +86,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--latents", required=True)
     p.add_argument("--output", required=True)
+    p.add_argument("--vae-tile-size", type=int, choices=[0, 256, 512], default=256)
     a = p.parse_args()
-    decode(a.latents, a.output)
+    decode(a.latents, a.output, a.vae_tile_size)

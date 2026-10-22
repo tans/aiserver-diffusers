@@ -15,6 +15,8 @@ from .tensor_parallel import load_transformer
 
 
 def main():
+    from .memory import prefer_inference_eviction
+    prefer_inference_eviction()
     p = argparse.ArgumentParser()
     p.add_argument("--condition", required=True)
     p.add_argument("--output", required=True)
@@ -64,9 +66,18 @@ def main():
             ref_inputs[name] = [condition[k] for k in keys]
     forwards = []
     current = [0.0]
-    def before(module, inputs):
+    def before(module, inputs, kwargs):
         torch.cuda.synchronize()
         current[0] = time.perf_counter()
+        capture = int(os.getenv("H3_CAPTURE_FORWARD", "0"))
+        if rank == 0 and capture and len(forwards) + 1 == capture:
+            import inspect
+            arguments = inspect.signature(module.forward).bind(*inputs, **kwargs).arguments
+            tensors = {k: v.detach().cpu().contiguous() for k, v in arguments.items() if torch.is_tensor(v)}
+            extra = {k: v for k, v in arguments.items() if not torch.is_tensor(v)}
+            devices = {k: v.device.type for k, v in arguments.items() if torch.is_tensor(v)}
+            save_file(tensors, str(Path(args.output).with_suffix(f".forward{capture}.safetensors")),
+                      metadata={"extra": json.dumps(extra), "devices": json.dumps(devices)})
     def after(module, inputs, output):
         torch.cuda.synchronize()
         values = (output.sample, output.audio_sample) if hasattr(output, "sample") else output
@@ -75,7 +86,7 @@ def main():
         forwards.append(time.perf_counter() - current[0])
         if rank == 0:
             print(json.dumps({"event": "forward", "number": len(forwards), "seconds": forwards[-1]}), flush=True)
-    model.register_forward_pre_hook(before)
+    model.register_forward_pre_hook(before, with_kwargs=True)
     model.register_forward_hook(after)
     denoise_started = time.perf_counter()
     # Native H3 scheduler uses N sigma points for N-1 forward evaluations.

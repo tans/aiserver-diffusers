@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>任务详情 · AIserver Diffusers</title>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style>
+:root{
+  --bg:#f5f7fb; --card:#ffffff; --card2:#f3f6fc;
+  --line:#e3e9f2; --line2:#cbd6e6;
+  --txt:#1f2a3d; --muted:#5c6b84; --dim:#8b9ab1;
+  --accent:#2563eb; --accent2:#1d4ed8; --accent-soft:#eaf1ff;
+  --ok:#16a34a; --warn:#d97706; --err:#dc2626; --run:#2563eb; --que:#8b9ab1;
+  --code:#1e293b; --codebg:#f1f5f9; --radius:14px;
+  --shadow:0 1px 2px #1e293b0a,0 6px 20px #1e293b12;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(1100px 520px at 85% -8%,#dbe7ff 0%,var(--bg) 55%) fixed;color:var(--txt);
+  font:15px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;min-height:100vh}
+.wrap{max-width:1000px;margin:0 auto;padding:24px 20px 60px}
+a{color:var(--accent2);text-decoration:none}
+a:hover{text-decoration:underline}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 0 18px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.back{font-size:13.5px;color:var(--muted);border:1px solid var(--line2);border-radius:8px;padding:5px 12px;background:var(--card);box-shadow:var(--shadow)}
+.back:hover{color:var(--txt);text-decoration:none}
+h1{font-size:18px;font-weight:700;word-break:break-all}
+#status{margin-left:auto}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 12px;border-radius:99px;border:1px solid var(--line2);background:var(--card2);white-space:nowrap}
+.badge .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex:none}
+.d-queued .dot{background:var(--que)} .d-starting .dot{background:var(--warn)}
+.d-running .dot{background:var(--run);animation:pulse 1.6s infinite}
+.d-succeeded .dot{background:var(--ok)} .d-failed .dot{background:var(--err)}
+.d-cancelled .dot{background:var(--dim)}
+@keyframes pulse{50%{opacity:.35}}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin-bottom:12px;color:var(--accent2)}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+.mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;font-size:12.5px;color:var(--code)}
+.muted{color:var(--muted)} .small{font-size:13px}
+pre{background:var(--codebg);border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;font-size:12.5px;line-height:1.55;max-height:480px}
+pre code{font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;color:var(--code);white-space:pre}
+.media{display:flex;justify-content:center;background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:14px}
+.media img,.media video{max-width:100%;max-height:520px;border-radius:8px;display:block}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1e5fd8,#2563eb);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 14px #2563eb30}
+.btn:hover{filter:brightness(1.08);text-decoration:none}
+.btn.ghost{background:var(--card);color:var(--accent2);border:1px solid var(--line2);font-weight:500;box-shadow:none}
+.btn.ghost:hover{background:var(--accent-soft)}
+.btn.danger{background:transparent;color:var(--err);border:1px solid #f1c4c4;box-shadow:none}
+.errbox{background:#fef2f2;border:1px solid #f3c1c1;color:#b91c1c;border-radius:10px;padding:14px;margin-bottom:14px}
+.loading{color:var(--muted);padding:40px;text-align:center}
+@media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="back" href="/">← 返回首页</a>
+    <h1 id="title">任务详情</h1>
+    <span class="badge" id="status"><span class="dot"></span><span id="statusText">加载中…</span></span>
+  </header>
+  <div id="body"></div>
+  <div class="card" id="reqCard" style="display:none">
+    <h2>请求与结果（完整 JSON）</h2>
+    <div class="grid g2" id="reqSummary"></div>
+    <pre><code id="json">…</code></pre>
+  </div>
+</div>
+
+<script>
+'use strict';
+const BASE = location.origin;
+const id = new URLSearchParams(location.search).get('id');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = iso => { if(!iso) return '—'; const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString('zh-CN',{hour12:false}); };
+const STATUS_CN = {queued:'排队中', starting:'启动中', running:'运行中', succeeded:'成功', failed:'失败', cancelled:'已取消'};
+const STATUS_CLS = {queued:'d-queued', starting:'d-starting', running:'d-running', succeeded:'d-succeeded', failed:'d-failed', cancelled:'d-cancelled'};
+const DOT_CLS = {queued:'', starting:'warn', running:'run', succeeded:'ok', failed:'err', cancelled:''};
+
+let job = null, timer = null;
+
+async function load(){
+  if(!id){ document.getElementById('title').textContent = '缺少任务 ID'; return; }
+  document.getElementById('title').textContent = id;
+  try{
+    const r = await fetch('/v1/jobs/' + encodeURIComponent(id));
+    if(!r.ok){
+      const d = await r.json().catch(()=>({}));
+      throw new Error((d.detail && d.detail.message) || '任务不存在');
+    }
+    job = await r.json();
+    render();
+    if(['queued','starting','running'].includes(job.status)){
+      timer = setTimeout(load, 4000);
+    }
+  }catch(e){
+    document.getElementById('body').innerHTML = `<div class="errbox">加载失败：${esc(e.message)}<br><a class="small" href="/">返回首页</a></div>`;
+  }
+}
+
+function resultUrl(){
+  if(job.status !== 'succeeded') return null;
+  const r = job.result || {};
+  return BASE + (r.download_url || '/v1/jobs/' + job.id + '/result') + '?v=' + encodeURIComponent(r.media_revision || job.updated_at || '');
+}
+
+function render(){
+  const st = job.status;
+  const stEl = document.getElementById('status');
+  stEl.className = 'badge ' + (STATUS_CLS[st] || '');
+  stEl.querySelector('.dot').style.background = DOT_CLS[st] ? `var(--${DOT_CLS[st]})` : 'var(--dim)';
+  document.getElementById('statusText').textContent = STATUS_CN[st] || st;
+
+  const body = document.getElementById('body');
+  const r = job.result || {};
+  let html = '';
+
+  const req = job.request || {};
+  const inp = req.input || {};
+  html += `<div class="card"><h2>基本信息</h2>
+    <div class="grid g3">
+      <div><label>模型</label><div class="mono">${esc(job.model)}</div></div>
+      <div><label>任务</label><div class="mono">${esc(job.task)}</div></div>
+      <div><label>创建 / 更新</label><div class="small muted">${fmt(job.created_at)}<br>${fmt(job.updated_at)}</div></div>
+    </div>
+    <label>提示词 Prompt</label>
+    <div style="background:var(--codebg);border:1px solid var(--line);border-radius:8px;padding:10px" class="mono">${esc(inp.prompt || '—')}</div>
+    ${inp.references ? `<label>参考素材 references</label><pre style="max-height:200px"><code>${esc(JSON.stringify(inp.references, null, 2))}</code></pre>` : ''}
+  </div>`;
+
+  if(st === 'failed'){
+    html += `<div class="errbox"><b>推理失败</b>${esc(job.error_code ? ' · ' + job.error_code : '')}<br>${esc(job.error_message || '')}</div>`;
+  }
+
+  const url = resultUrl();
+  const thumbUrl = `/v1/jobs/${encodeURIComponent(job.id)}/thumbnail?v=${encodeURIComponent((job.result || {}).media_revision || job.updated_at || '')}`;
+  if(url){
+    html += `<div class="card"><h2>生成结果预览</h2>
+      <div class="media"><video src="${url}" controls preload="metadata" poster="${thumbUrl}"></video></div>
+      <div class="row">
+        <a class="btn btn-primary" href="${url}" download>⬇ 下载产物</a>
+        <a class="btn btn-outline ghost" href="${url}" target="_blank">在新窗口打开</a>
+      </div>`;
+    const meta = [];
+    if(r.frames) meta.push(`${r.frames} 帧 · 实际 ${r.actual_duration_seconds!=null ? r.actual_duration_seconds.toFixed(2)+'s' : '—'}`);
+    if(r.width) meta.push(`尺寸 ${r.width}×${r.height}`);
+    if(r.seed!=null) meta.push(`seed ${r.seed}`);
+    if(r.timing && r.timing.total_seconds!=null) meta.push(`整单 ${(r.timing.total_seconds/60).toFixed(1)} 分钟`);
+    if(r.gpu_memory && r.gpu_memory.peak_memory_used_mib!=null) meta.push(`峰值显存 ${(r.gpu_memory.peak_memory_used_mib/1024).toFixed(0)} GiB`);
+    meta.push(`workflow: ${r.workflow||'—'}`);
+    html += `<div class="small muted" style="margin-top:10px">${esc(meta.join(' · '))}</div>`;
+    html += `</div>`;
+  } else if(st === 'queued'){
+    html += `<div class="card"><h2>等待执行</h2>
+      <p class="small muted">任务仍在排队，页面每 4 秒自动刷新。你可以在<a href="/">首页 → 生成记录</a>中持续跟踪。</p>
+      <button class="btn btn-outline danger" id="cancelBtn">取消排队</button></div>`;
+  }
+
+  body.innerHTML = html;
+  const cb = document.getElementById('cancelBtn');
+  if(cb) cb.addEventListener('click', cancel);
+
+  document.getElementById('reqCard').style.display = 'block';
+  document.getElementById('json').textContent = JSON.stringify(job, null, 2);
+  const sum = document.getElementById('reqSummary');
+  sum.innerHTML = `
+    <div><label>输入 input</label><pre style="max-height:200px"><code>${esc(JSON.stringify(inp, null, 2))}</code></pre></div>
+    <div><label>参数 parameters</label><pre style="max-height:200px"><code>${esc(JSON.stringify(req.parameters || {}, null, 2))}</code></pre></div>`;
+}
+
+async function cancel(){
+  try{
+    const r = await fetch('/v1/jobs/' + encodeURIComponent(id) + ':cancel', {method:'POST'});
+    const d = await r.json();
+    if(!r.ok) throw new Error((d.detail && d.detail.message) || '取消失败');
+    if(d.status === 'cancelled'){ clearTimeout(timer); load(); }
+  }catch(e){
+    alert('取消失败：' + e.message);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

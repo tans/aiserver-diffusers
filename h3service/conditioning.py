@@ -69,7 +69,7 @@ def encode(request, output):
     # Loading 51 layers preserves that exact native Diffusers contract.
     config.text_config.num_hidden_layers = 51
     count = torch.cuda.device_count()
-    memory = {i: "10GiB" for i in range(count)}
+    memory = {i: "13GiB" if count == 3 else "10GiB" for i in range(count)}
     memory["cpu"] = "12GiB"
     loaded = time.perf_counter()
     te = Qwen3VLForConditionalGeneration.from_pretrained(
@@ -140,11 +140,15 @@ def encode(request, output):
 
 
 def main():
+    from .memory import prefer_inference_eviction
+    prefer_inference_eviction()
     p = argparse.ArgumentParser()
     p.add_argument("--request", required=True)
     p.add_argument("--output", required=True)
     args = p.parse_args()
-    encode(json.loads(Path(args.request).read_text()), args.output)
+    from .memory import model_staging_lock
+    with model_staging_lock():
+        encode(json.loads(Path(args.request).read_text()), args.output)
 
 
 if __name__ == "__main__":
