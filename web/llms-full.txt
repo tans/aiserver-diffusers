@@ -1,0 +1,156 @@
+# AIserver Diffusers API Guide
+
+Experimental public MiniMax H3 video generation through Diffusers. The new service uses the 8188 penetration entry or the dedicated 8190 tunnel. The legacy LightX2V service remains separate on 8189.
+
+## Discover current capabilities first
+
+Call `GET /ready` before submitting work. It reports worker readiness plus the admitted tasks, profiles, geometries, and profile-to-task support. Admission may change as the service is updated. A job outside the reported capability set is rejected even when its fields are otherwise valid.
+
+`GET /health` only reports API process availability; it does not mean a worker is ready to infer.
+
+## Base URLs
+
+```text
+http://minixm.minapp.xin:8188
+http://minixm.minapp.xin:8190
+```
+
+Both addresses expose the same Diffusers API. Port 8189 is the independent legacy LightX2V service.
+
+## Model and tasks
+
+- Model ID: `minimax-h3`
+- Canonical task IDs: `text_to_video` and `ref2av`
+- Task aliases accepted by job submission: `t2v`, `i2v`, and `image_to_video`
+- Result format: MP4
+- Image generation and super resolution are not provided here.
+- Reference generation accepts uploaded image IDs only when `ref2av` and the selected profile are listed by `/ready`. Video and audio reference workflows are not publicly admitted.
+
+## Request envelope
+
+Submit JSON to `POST /v1/jobs`:
+
+```json
+{
+  "model": "minimax-h3",
+  "task": "text_to_video",
+  "input": {
+    "prompt": "A red tram crosses a rainy city at night, cinematic and realistic."
+  },
+  "parameters": {
+    "width": 512,
+    "height": 320,
+    "duration_seconds": 5.17,
+    "profile": "quality",
+    "steps": 20,
+    "seed": 12345
+  },
+  "options": {
+    "priority": 0
+  }
+}
+```
+
+Only `model`, `task`, `input`, `parameters`, and `options` are accepted at the top level. Unknown top-level fields are rejected.
+
+### Input fields
+
+- `input.prompt`: required string, 1–2,000 characters after trimming.
+- `input.references`: optional object with `images`, `videos`, and `audios` arrays. Reference file IDs must come from `POST /v1/files`. For public `ref2av` use, provide one admitted image reference; check `/ready` for the active per-task limit. Video and audio references are not verified for public use.
+- A reference prompt can identify the uploaded image as `<Picture 1>`.
+
+### Parameters
+
+- `duration_seconds`: required number from 5 through 15. The service maps this to its nearest legal frame slot; use `/ready` to see which resulting geometries are admitted.
+- `width` and `height`: default to 512 and 320. Each must be a positive multiple of 32, area must not exceed 983,040 pixels, and the resulting geometry must be admitted by `/ready`.
+- `profile`: defaults to `quality`; select a profile listed for the requested task in `/ready`.
+- `steps`: quality requires at least 20 steps. Turbo profiles use their fixed step count (`turbo8`: 8, `turbo4`: 4). The requested profile and step count must both be admitted.
+- `seed`: optional nonnegative integer smaller than `2^63`. If omitted, the service chooses one.
+- Do not send `frames`; specify `duration_seconds` instead. Arbitrary LoRAs and unverified sampling or memory options are not admitted.
+
+### Options
+
+- `priority`: optional integer from 0 through 10; defaults to 0. Other option fields are rejected.
+
+## Upload an image reference
+
+`POST /v1/files` uses multipart form data with field name `file`. Maximum upload size is 2 GiB. The response includes `file_id`, `filename`, and `size_bytes`.
+
+```sh
+BASE=http://minixm.minapp.xin:8188
+curl -X POST "$BASE/v1/files" -F 'file=@reference.png'
+```
+
+Use the returned 32-character hexadecimal `file_id` in `input.references.images`:
+
+```json
+{
+  "model": "minimax-h3",
+  "task": "ref2av",
+  "input": {
+    "prompt": "Keep the identity from <Picture 1>. A cinematic close-up.",
+    "references": {"images": ["<file_id>"]}
+  },
+  "parameters": {
+    "width": 512,
+    "height": 320,
+    "duration_seconds": 5.17,
+    "profile": "turbo8",
+    "steps": 8,
+    "seed": 12345
+  }
+}
+```
+
+Use this example only when `/ready` admits `ref2av` with `turbo8` and the requested geometry.
+
+## Submit and retrieve a text-to-video job
+
+```sh
+BASE=http://minixm.minapp.xin:8188
+curl -X POST "$BASE/v1/jobs" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"minimax-h3","task":"text_to_video","input":{"prompt":"A red tram crosses a rainy city at night, cinematic and realistic."},"parameters":{"width":512,"height":320,"duration_seconds":5.17,"profile":"quality","steps":20}}'
+```
+
+The successful submission response has HTTP 202 and includes `job_id`, `status`, `created_at`, and `poll_url`. Poll `GET /v1/jobs/{job_id}` until the status is terminal. On `succeeded`, download `GET /v1/jobs/{job_id}/result` as MP4.
+
+```sh
+curl -f "$BASE/v1/jobs/<job_id>/result" -o output.mp4
+```
+
+## Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/health` | API process health |
+| `GET` | `/ready` | Worker readiness and admitted capabilities |
+| `GET` | `/v1/models` | Model, task, profile, and result-format metadata |
+| `POST` | `/v1/files` | Upload an input reference file |
+| `POST` | `/v1/jobs` | Submit a generation job; returns HTTP 202 |
+| `GET` | `/v1/jobs?limit=50&offset=0` | List jobs; supports `model`, `status`, and `task` filters |
+| `GET` | `/v1/jobs/{job_id}` | Read job state, request summary, and result metadata |
+| `POST` | `/v1/jobs/{job_id}:cancel` | Request cancellation; queued jobs can be cancelled before inference starts |
+| `GET` | `/v1/jobs/{job_id}/result` | Download the completed MP4 |
+| `GET` | `/v1/jobs/{job_id}/thumbnail` | Read the completed job thumbnail |
+
+Job list `limit` is clamped to 1–200; `offset` is clamped to zero or greater. Common states are `queued`, `starting`, `running`, `succeeded`, `failed`, and `cancelled`.
+
+## Errors
+
+Submission errors normally return JSON with `detail.code` and `detail.message`. Common codes include:
+
+- `UNKNOWN_MODEL`, `UNSUPPORTED_TASK`, `MODEL_NOT_READY`
+- `INVALID_PROMPT`, `UNSUPPORTED_DURATION`, `INVALID_DIMENSIONS`, `UNVERIFIED_GEOMETRY`
+- `UNVERIFIED_PROFILE`, `INVALID_STEPS`, `INVALID_SEED`, `UNVERIFIED_LORA`
+- `INVALID_REFERENCE`, `REFERENCE_REQUIRED`, `REFERENCE_LIMIT`, `INPUT_FILE_NOT_FOUND`, `INPUT_TOO_LARGE`, `UNVERIFIED_REFERENCE`
+- `UNSUPPORTED_INPUT`, `UNSUPPORTED_PARAMETERS`, `UNSUPPORTED_OPTIONS`, `QUEUE_FULL`, `INSUFFICIENT_STORAGE`
+- `JOB_NOT_FOUND`, `RESULT_NOT_READY`, `RESULT_NOT_FOUND`, `INFERENCE_FAILED`
+
+## API references
+
+- Interactive console: `/`
+- Swagger UI: `/docs`
+- ReDoc: `/redoc`
+- OpenAPI JSON: `/openapi.json`
+- Short LLM index: `/llms.txt`

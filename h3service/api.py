@@ -19,6 +19,27 @@ from pydantic import BaseModel, ConfigDict, Field
 from .store import DATA, INPUTS, JOBS, ROOT, database, now, public_job
 
 app = FastAPI(title="AIserver Diffusers", version="0.1.0")
+WEB = ROOT / "web"
+
+
+@app.get("/", include_in_schema=False)
+def home():
+    return FileResponse(WEB / "index.html", media_type="text/html")
+
+
+@app.get("/detail.html", include_in_schema=False)
+def detail_page():
+    return FileResponse(WEB / "detail.html", media_type="text/html")
+
+
+@app.get("/llms.txt", include_in_schema=False)
+def llms_index():
+    return FileResponse(WEB / "llms.txt", media_type="text/plain; charset=utf-8")
+
+
+@app.get("/llms-full.txt", include_in_schema=False)
+def llms_full():
+    return FileResponse(WEB / "llms-full.txt", media_type="text/plain; charset=utf-8")
 
 
 class JobRequest(BaseModel):

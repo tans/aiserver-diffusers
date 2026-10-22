@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIserver Diffusers · H3 视频生成</title>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+<script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style>
+:root{
+  --bg:#f5f7fb; --bg2:#eef2f8; --card:#ffffff; --card2:#f3f6fc;
+  --line:#e3e9f2; --line2:#cbd6e6;
+  --txt:#1f2a3d; --muted:#5c6b84; --dim:#8b9ab1;
+  --accent:#2563eb; --accent2:#1d4ed8; --accent-soft:#eaf1ff;
+  --ok:#16a34a; --warn:#d97706; --err:#dc2626; --run:#2563eb; --que:#8b9ab1;
+  --code:#1e293b; --codebg:#f1f5f9;
+  --radius:14px;
+  --shadow:0 1px 2px #1e293b0a,0 6px 20px #1e293b12;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:radial-gradient(1100px 520px at 85% -8%,#dbe7ff 0%,var(--bg) 55%) fixed;
+  color:var(--txt); font:15px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+  min-height:100vh;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 80px}
+a{color:var(--accent2);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* header */
+header{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:22px 0 16px}
+.logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#1e5fd8,#7ab3ff);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#fff;
+  box-shadow:0 6px 18px #2563eb35}
+h1{font-size:22px;font-weight:700;letter-spacing:.3px}
+h1 small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.status{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.chip{font-size:12px;padding:4px 12px;border-radius:99px;border:1px solid var(--line2);background:var(--card);color:var(--muted);display:inline-flex;gap:6px;align-items:center;white-space:nowrap;box-shadow:var(--shadow)}
+.chip b{font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex:none}
+.dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+.dot.err{background:var(--err);box-shadow:0 0 8px var(--err)}
+.dot.run{background:var(--run);box-shadow:0 0 8px var(--run);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* tabs */
+nav.tabs{display:flex;gap:6px;margin:6px 0 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{padding:10px 18px;cursor:pointer;color:var(--muted);font:inherit;font-size:15px;background:transparent;border:1px solid transparent;border-bottom:none;border-radius:10px 10px 0 0;user-select:none}
+.tab:hover{color:var(--txt)}
+.tab.active{color:var(--accent2);background:var(--card);border-color:var(--line);font-weight:600}
+section{display:none}
+section.active{display:block;animation:fade .25s}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px;box-shadow:var(--shadow);overflow-x:auto}
+.card h2{font-size:17px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.card h3{font-size:14px;color:var(--accent2);margin:18px 0 10px}
+.muted{color:var(--muted)} .dim{color:var(--dim)} .small{font-size:13px}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{color:var(--muted);text-align:left;font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:hover td{background:var(--card2)}
+.mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;font-size:12.5px;color:var(--code)}
+
+/* status badges */
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:2px 10px;border-radius:99px;border:1px solid var(--line2);background:var(--card2);white-space:nowrap}
+.badge .dot{width:7px;height:7px}
+.b-queued .dot{background:var(--que)} .b-starting .dot{background:var(--warn)}
+.b-running .dot{background:var(--run);animation:pulse 1.6s infinite}
+.b-succeeded .dot{background:var(--ok)} .b-failed .dot{background:var(--err)}
+.b-cancelled .dot{background:var(--dim)}
+
+/* code block */
+pre{background:var(--codebg);border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;font-size:12.8px;line-height:1.55}
+pre code{font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;color:var(--code);white-space:pre}
+.copylink{float:right;font-size:12px;color:var(--accent2);cursor:pointer;border:1px solid var(--line2);border-radius:8px;padding:2px 10px;margin-left:8px;background:var(--card)}
+.copylink:hover{background:var(--accent-soft);text-decoration:none}
+pre::before{content:attr(data-label);display:block;color:var(--dim);font-size:11px;margin-bottom:8px}
+
+/* forms */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+input[type=text],input[type=number],input[type=file],select,textarea{
+  width:100%;background:var(--card);border:1px solid var(--line2);color:var(--txt);
+  border-radius:9px;padding:9px 12px;font-size:14px;outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #2563eb66;outline-offset:2px}
+textarea{resize:vertical;min-height:90px;font-family:inherit}
+input[type=file]{padding:7px}
+select{cursor:pointer}
+.hint{font-size:12px;color:var(--dim);margin-top:4px}
+.btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1e5fd8,#2563eb);color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:14.5px;font-weight:600;cursor:pointer;transition:filter .15s;box-shadow:0 4px 14px #2563eb30}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.ghost{background:var(--card);color:var(--accent2);border:1px solid var(--line2);font-weight:500;box-shadow:none}
+.btn.ghost:hover{background:var(--accent-soft)}
+.btn.danger{background:transparent;color:var(--err);border:1px solid #f1c4c4;font-weight:500;box-shadow:none}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.fixedchip{display:inline-block;background:var(--card2);border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:8px 12px;font-size:13.5px}
+
+/* result preview in playground */
+#plResult{display:none;margin-top:16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);padding:16px;box-shadow:var(--shadow)}
+#plResult.show{display:block}
+#plResult img,#plResult video{max-width:100%;max-height:420px;border-radius:10px;background:#0b1220;display:block;margin:10px 0}
+#plResult .meta{font-size:12.5px;color:var(--muted)}
+
+/* records */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.search{max-width:260px}
+.recrow{animation:fade .3s}
+.promptcell{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12.5px}
+.op{font-size:12.5px;display:inline-flex;gap:6px}
+.op a{cursor:pointer;white-space:nowrap}
+.op a.dim{color:var(--dim);cursor:not-allowed}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;font-size:13px;color:var(--muted)}
+.pager button{background:var(--card);border:1px solid var(--line2);color:var(--txt);border-radius:8px;padding:5px 12px;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:not-allowed}
+
+/* record thumbnails */
+.thumbwrap{position:relative;display:inline-block;width:132px;vertical-align:top}
+.thumb{width:132px;height:84px;object-fit:cover;border-radius:8px;background:#0b1220;display:block;border:1px solid var(--line2)}
+.thumb:hover{border-color:var(--accent)}
+.playicon{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:#0b1220aa;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;border:1.5px solid #ffffffcc;pointer-events:none}
+.thumbopen{position:absolute;right:4px;bottom:4px;font-size:10.5px;color:#fff;background:#0b1220aa;border-radius:6px;padding:1px 6px}
+.thumbopen:hover{background:#2563ebaa;text-decoration:none}
+
+footer{color:var(--dim);font-size:12.5px;text-align:center;margin-top:30px}
+.loading{color:var(--muted);padding:30px;text-align:center}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--line2);
+  color:var(--txt);padding:10px 20px;border-radius:10px;font-size:13.5px;z-index:99;display:none;max-width:86vw;box-shadow:0 8px 30px #1e293b33}
+.toast.show{display:block;animation:fade .2s}
+.toast.err{border-color:#f3c1c1;color:#b91c1c}
+@media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}.promptcell{max-width:160px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">AI</div>
+    <h1>AIserver Diffusers · H3 视频生成<small>文生视频 / 参考生成 — 公网开放，无需鉴权，Diffusers 推理引擎</small></h1>
+    <div class="status" id="statusChips"></div>
+  </header>
+
+  <nav class="tabs tabs-border" role="tablist">
+    <button type="button" id="tab-button-docs" class="tab tab-active active" role="tab" aria-controls="tab-docs" aria-selected="true" tabindex="0" data-tab="docs">调用方法</button>
+    <button type="button" id="tab-button-play" class="tab" role="tab" aria-controls="tab-play" aria-selected="false" tabindex="-1" data-tab="play">在线试用</button>
+    <button type="button" id="tab-button-recs" class="tab" role="tab" aria-controls="tab-recs" aria-selected="false" tabindex="-1" data-tab="recs">生成记录 <span class="dim" id="recCount"></span></button>
+  </nav>
+
+  <!-- ============ 调用方法 ============ -->
+  <section id="tab-docs" class="active" role="tabpanel" aria-labelledby="tab-button-docs">
+    <div class="card">
+      <h2>服务总览</h2>
+      <p class="muted" style="margin-bottom:12px">服务基址 <span class="mono" id="baseUrl"></span>，当前对公网开放，<b>无鉴权、无频率限制</b>。调用流程：<span class="mono">POST /v1/jobs</span> 提交任务 → 返回 <span class="mono">job_id</span> → 轮询 <span class="mono">GET /v1/jobs/{id}</span> → 成功后从 <span class="mono">GET /v1/jobs/{id}/result</span> 下载产物。模型状态以 <span class="mono">/v1/models</span> 返回为准。</p>
+      <div id="modelCards"></div>
+    </div>
+
+    <div class="card">
+      <h2>接口一览</h2>
+      <table class="table">
+        <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge"><span class="dot ok"></span>GET</span></td><td class="mono">/health</td><td>服务存活检查</td></tr>
+          <tr><td><span class="badge"><span class="dot ok"></span>GET</span></td><td class="mono">/ready</td><td>推理运行时就绪状态与能力（任务 / 档位 / 几何）</td></tr>
+          <tr><td><span class="badge"><span class="dot ok"></span>GET</span></td><td class="mono">/v1/models</td><td>可用模型、任务与状态</td></tr>
+          <tr><td><span class="badge"><span class="dot warn"></span>POST</span></td><td class="mono">/v1/files</td><td>上传参考图片，返回 <span class="mono">file_id</span>，上限 2 GiB</td></tr>
+          <tr><td><span class="badge"><span class="dot warn"></span>POST</span></td><td class="mono">/v1/jobs</td><td>提交生成任务，202 返回 <span class="mono">job_id</span> 与 <span class="mono">poll_url</span></td></tr>
+          <tr><td><span class="badge"><span class="dot ok"></span>GET</span></td><td class="mono">/v1/jobs/{job_id}</td><td>查询任务状态与结果信息</td></tr>
+          <tr><td><span class="badge"><span class="dot warn"></span>POST</span></td><td class="mono">/v1/jobs/{job_id}:cancel</td><td>取消仍在排队（queued）的任务</td></tr>
+          <tr><td><span class="badge"><span class="dot ok"></span>GET</span></td><td class="mono">/v1/jobs/{job_id}/result</td><td>下载产物 MP4</td></tr>
+          <tr><td><span class="badge"><span class="dot ok"></span>GET</span></td><td class="mono">/v1/jobs</td><td>分页浏览历史生成记录（本页“生成记录”所用）</td></tr>
+        </tbody>
+      </table>
+      <p class="small dim" style="margin-top:10px">任务状态流转：<span class="mono">queued</span> → <span class="mono">starting</span> → <span class="mono">running</span> → <span class="mono">succeeded</span> / <span class="mono">failed</span>；排队中可取消。其他文档：<a href="/docs" target="_blank">Swagger UI</a> · <a href="/redoc" target="_blank">ReDoc</a> · <a href="/openapi.json" target="_blank">openapi.json</a> · <a href="/llms.txt" target="_blank">llms.txt</a> · <a href="/llms-full.txt" target="_blank">完整 API 指南</a></p>
+    </div>
+
+    <div class="card">
+      <h2>通用请求格式</h2>
+      <p class="muted" style="margin-bottom:12px">请求体为 JSON，顶层字段：<span class="mono">model</span>（必填）、<span class="mono">task</span>（必填）、<span class="mono">input</span>（含 prompt / references）、<span class="mono">parameters</span>（时长、档位、步数、seed 等）、<span class="mono">options</span>（仅 priority）。额外顶层字段会被拒绝。</p>
+      <pre data-label="POST /v1/jobs 请求体结构"><code>{
+  "model":      "minimax-h3",            // 必填，唯一可用模型
+  "task":       "text_to_video",         // 必填，text_to_video / ref2av
+  "input":      {"prompt": "..."},       // 提示词；ref2av 附加 references
+  "parameters": {"width": 512, "height": 320, "duration_seconds": 5.17,
+                 "steps": 20, "profile": "quality", "seed": 12345},
+  "options":    {}
+}</code></pre>
+      <h3>提交（响应 202）</h3>
+      <pre data-label="curl"><code>curl -X POST http://minixm.minapp.xin:8188/v1/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"minimax-h3","task":"text_to_video","input":{"prompt":"A red tram crossing a rainy city at night, cinematic, realistic."},"parameters":{"duration_seconds":5.17,"width":512,"height":320,"steps":20,"profile":"quality"}}'</code></pre>
+      <pre data-label="响应"><code>{
+  "job_id": "job_xxxxxxxxxxxxxxxx",
+  "status": "queued",
+  "model": "minimax-h3",
+  "task": "text_to_video",
+  "created_at": "2026-10-22T12:00:00+00:00",
+  "poll_url": "/v1/jobs/job_xxxxxxxxxxxxxxxx"
+}</code></pre>
+      <h3>轮询与下载</h3>
+      <pre data-label="curl 轮询 + 下载"><code>JOB_ID="job_xxxxxxxxxxxxxxxx"
+BASE="http://minixm.minapp.xin:8188"
+
+while true; do
+  STATUS=$(curl -s "$BASE/v1/jobs/$JOB_ID" | python3 -c 'import json,sys;print(json.load(sys.stdin)["status"])')
+  echo "$STATUS"
+  case "$STATUS" in
+    succeeded|failed|cancelled) break ;;
+  esac
+  sleep 5
+done
+
+curl -f "$BASE/v1/jobs/$JOB_ID/result" -o output.mp4</code></pre>
+    </div>
+
+    <div class="card">
+      <h2>模型调用方法</h2>
+      <div id="docModels"></div>
+    </div>
+
+    <div class="card">
+      <h2>常见错误码</h2>
+      <table class="table">
+        <thead><tr><th>错误码</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">UNKNOWN_MODEL</td><td>模型 ID 未登记（仅 minimax-h3）</td></tr>
+          <tr><td class="mono">UNSUPPORTED_TASK</td><td>该服务不支持的任务类型</td></tr>
+          <tr><td class="mono">MODEL_NOT_READY</td><td>工作流尚未通过验证（HTTP 503）</td></tr>
+          <tr><td class="mono">UNSUPPORTED_INPUT / UNSUPPORTED_OPTIONS</td><td>input / options 中出现未开放字段</td></tr>
+          <tr><td class="mono">INVALID_PROMPT</td><td>prompt 为空或超过 2,000 字符</td></tr>
+          <tr><td class="mono">UNSUPPORTED_DURATION</td><td>时长需为 5–15 秒的数值</td></tr>
+          <tr><td class="mono">INVALID_DIMENSIONS</td><td>宽高需为 32 的倍数且面积 ≤983,040</td></tr>
+          <tr><td class="mono">UNVERIFIED_GEOMETRY</td><td>宽高×帧数组合未通过验收（当前仅 512×320，5–15 秒帧槽）</td></tr>
+          <tr><td class="mono">UNVERIFIED_PROFILE</td><td>档位 / 步数组合未通过验收（quality ≥20 步，turbo 档固定步数）</td></tr>
+          <tr><td class="mono">INVALID_STEPS</td><td>steps 需为 4–64 的整数</td></tr>
+          <tr><td class="mono">INVALID_SEED</td><td>seed 必须是 JSON 整数</td></tr>
+          <tr><td class="mono">INVALID_REFERENCE / REFERENCE_REQUIRED / REFERENCE_LIMIT</td><td>references 结构、数量或必填项不满足</td></tr>
+          <tr><td class="mono">INPUT_FILE_NOT_FOUND / INPUT_TOO_LARGE</td><td>文件引用无效（file_id 为 32 位十六进制）或超过 2 GiB</td></tr>
+          <tr><td class="mono">UNVERIFIED_REFERENCE</td><td>视频 / 音频参考工作流尚未开放（图片参考最多 1 张）</td></tr>
+          <tr><td class="mono">UNVERIFIED_LORA</td><td>LoRA 支持未通过验证</td></tr>
+          <tr><td class="mono">QUEUE_FULL</td><td>任务队列已满（HTTP 429）</td></tr>
+          <tr><td class="mono">JOB_NOT_FOUND</td><td>任务不存在（HTTP 404）</td></tr>
+          <tr><td class="mono">RESULT_NOT_READY / RESULT_NOT_FOUND</td><td>任务未成功或产物缺失</td></tr>
+          <tr><td class="mono">INFERENCE_FAILED</td><td>入队后推理失败，见任务记录中的 error_message</td></tr>
+        </tbody>
+      </table>
+      <p class="small dim" style="margin-top:8px">提交校验错误返回 HTTP 400 + <span class="mono">{"detail":{"code":...,"message":...}}</span>；请求体不符合顶层 schema 返回 HTTP 422。</p>
+    </div>
+  </section>
+
+  <!-- ============ 在线试用 ============ -->
+  <section id="tab-play" role="tabpanel" aria-labelledby="tab-button-play">
+    <div class="card">
+      <h2>任务配置</h2>
+      <div class="grid g3" style="margin-bottom:14px">
+        <div>
+          <label>模型</label>
+          <input type="text" value="minimax-h3" class="mono" readonly>
+        </div>
+        <div>
+          <label>任务</label>
+          <select id="pTask" class="select select-bordered">
+            <option value="text_to_video">text_to_video · 文生视频</option>
+            <option value="ref2av">ref2av · 图片参考生成</option>
+          </select>
+        </div>
+        <div>
+          <label>推理档位</label>
+          <select id="pProfile" class="select select-bordered"></select>
+        </div>
+      </div>
+      <div class="grid g2">
+        <div>
+          <label>提示词 Prompt</label>
+          <textarea id="pPrompt" class="textarea textarea-bordered" placeholder="例如：Cinematic close-up of a red glossy espresso machine on a marble counter, warm morning light, shallow depth of field, gentle camera push-in."></textarea>
+        </div>
+        <div>
+          <div id="pFilesArea" style="display:none">
+            <label>参考图片（ref2av，最多 1 张）</label>
+            <div id="pFiles"></div>
+          </div>
+          <div class="grid g4" id="pParams">
+            <div><label>宽 width</label><div class="fixedchip">512</div></div>
+            <div><label>高 height</label><div class="fixedchip">320</div></div>
+            <div><label>步数 steps</label><input type="number" id="pSteps" class="input input-bordered" min="4" max="64" value="20"></div>
+            <div><label>seed（可空=随机）</label><input type="number" id="pSeed" class="input input-bordered" placeholder="随机"></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:14px">
+        <div>
+          <label>生成时长 duration_seconds</label>
+          <input type="number" id="pDur" class="input input-bordered" step="0.01" min="5" max="15" value="5.17">
+          <div class="hint" id="pDurHint">H3 视频时长（秒），5–15，映射到 124–362 帧槽</div>
+        </div>
+        <div>
+          <label>任务优先级 priority（0–10，可选）</label>
+          <input type="number" id="pPriority" class="input input-bordered" min="0" max="10" value="0">
+        </div>
+      </div>
+      <div class="row" style="margin-top:18px">
+        <button class="btn btn-primary" id="pSubmit">提交生成</button>
+        <button class="btn btn-outline ghost" id="pCopyCurl">复制 curl 命令</button>
+        <button class="btn btn-outline ghost" id="pReset">重置</button>
+        <span class="spacer"></span>
+        <span class="small dim" id="pJobHint">提交后任务进入服务端队列，可在“生成记录”页查看进度</span>
+      </div>
+      <div id="pErr" class="small" style="color:var(--err);margin-top:10px;display:none"></div>
+    </div>
+
+    <div class="card" id="plResult">
+      <h2>生成结果 <span class="badge b-running" id="plBadge" style="margin-left:auto"><span class="dot run"></span><span id="plStatus">queued</span></span></h2>
+      <div id="plBody">
+        <div class="loading" id="plLoading">排队中… 可关闭本页，进度在“生成记录”页持续跟踪</div>
+      </div>
+      <div class="meta" id="plMeta" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:12px">
+        <a class="btn btn-outline ghost" id="plDownload" style="display:none" download>⬇ 下载产物</a>
+        <a class="btn btn-outline ghost" id="plOpen" style="display:none" target="_blank">在新窗口打开</a>
+        <button class="btn btn-outline ghost" id="plCancel" style="display:none">取消排队</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 生成记录 ============ -->
+  <section id="tab-recs" role="tabpanel" aria-labelledby="tab-button-recs">
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0">历史生成记录</h2>
+        <span class="spacer"></span>
+        <select id="fTask" class="select select-bordered mono" style="max-width:170px">
+          <option value="">全部任务</option>
+          <option>text_to_video</option>
+          <option>ref2av</option>
+        </select>
+        <select id="fStatus" class="select select-bordered" style="max-width:130px">
+          <option value="">全部状态</option>
+          <option>queued</option><option>starting</option><option>running</option>
+          <option>succeeded</option><option>failed</option><option>cancelled</option>
+        </select>
+        <input type="text" id="fSearch" class="input input-bordered search" placeholder="搜索任务 ID / 提示词 / 参数…">
+        <button class="btn btn-outline ghost" id="recRefresh">刷新</button>
+        <label class="small dim" style="display:inline-flex;gap:6px;align-items:center;cursor:pointer">
+          <input type="checkbox" id="recAuto" checked> 自动刷新
+        </label>
+      </div>
+      <div id="recTableWrap"><div class="loading">加载中…</div></div>
+      <div class="pager" id="recPager"></div>
+    </div>
+  </section>
+
+  <footer>AIserver Diffusers 开放推理服务 · 数据来源于服务端任务库，状态每 8 秒自动刷新 · <a href="/docs" target="_blank">Swagger</a> · <a href="/redoc" target="_blank">ReDoc</a> · <a href="/llms.txt" target="_blank">llms.txt</a></footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const BASE = location.origin;
+let pollTimers = {}, recTimer = null, recPage = 0, REC_PER = 20;
+let capabilities = null;
+let uploadedFiles = [];
+const PROFILE_STEPS = {quality: 20, turbo8: 8, turbo4: 4};
+const PROFILE_LABELS = {quality: 'quality · 质量档（20 步）', turbo8: 'turbo8 · 8 步加速档', turbo4: 'turbo4 · 4 步加速档'};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = iso => { if(!iso) return '—'; const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString('zh-CN',{hour12:false}); };
+const fmtDur = s => s==null ? '—' : (s<60 ? s.toFixed(1)+'s' : (s<3600 ? Math.floor(s/60)+'m'+(s%60).toFixed(0)+'s' : (s/3600).toFixed(2)+'h'));
+
+/* ---------- toast ---------- */
+let toastTimer=null;
+function toast(msg, isErr){
+  const t=$('#toast'); t.textContent=msg; t.className='toast show'+(isErr?' err':'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='toast', 3200);
+}
+
+/* ---------- fetch ---------- */
+async function jget(path, opts){
+  const r = await fetch(path, opts);
+  const ct = r.headers.get('content-type')||'';
+  const body = ct.includes('json') ? await r.json() : await r.text();
+  if(!r.ok){
+    const detail = body && body.detail;
+    const msg = typeof detail === 'object' && detail.message ? detail.message : (typeof detail === 'string' ? detail : (body||r.status));
+    const err = new Error(msg); err.status=r.status; err.code = detail && detail.code; throw err;
+  }
+  return body;
+}
+function readDetail(e){
+  let d = e && e.detail;
+  if(d && typeof d === 'object' && d.message) return d.message;
+  if(typeof d === 'string') return d;
+  return (e&&e.message) || '请求失败';
+}
+
+/* ================= tabs ================= */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>{
+    x.classList.remove('active', 'tab-active');
+    x.setAttribute('aria-selected', 'false');
+    x.tabIndex = -1;
+  });
+  document.querySelectorAll('section').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active', 'tab-active');
+  t.setAttribute('aria-selected', 'true');
+  t.tabIndex = 0;
+  $('#tab-'+t.dataset.tab).classList.add('active');
+  if(t.dataset.tab==='recs'){ recPage=0; loadRecords(); }
+  if(t.dataset.tab==='play') syncPlayForm();
+}));
+document.querySelectorAll('.tab').forEach((tab, index, tabs)=>tab.addEventListener('keydown', event=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+  event.preventDefault();
+  const next = event.key==='Home' ? 0 : event.key==='End' ? tabs.length-1
+    : (index + (event.key==='ArrowRight' ? 1 : tabs.length-1)) % tabs.length;
+  tabs[next].focus();
+  tabs[next].click();
+}));
+
+/* ================= 状态与模型卡 ================= */
+async function loadStatus(){
+  try{
+    const [h, r, m] = await Promise.all([
+      jget('/health'), jget('/ready').catch(()=>null), jget('/v1/models')
+    ]);
+    const chips=[];
+    chips.push(`<span class="chip"><span class="dot ${h.status==='ok'?'ok':'err'}"></span><b>${esc(h.status)}</b></span>`);
+    if(r){
+      chips.push(`<span class="chip"><span class="dot ${r.status==='ready'?'ok':'warn'}"></span><b>${esc(r.engine)}</b> ${esc(r.status)}</span>`);
+      capabilities = r.capabilities || null;
+    }
+    (m.data||[]).forEach(x=>{
+      const st = x.status;
+      const cls = st==='verified'?'ok':(st==='experimental'?'run':(st==='migration_required'?'warn':'err'));
+      chips.push(`<span class="chip"><span class="dot ${cls}"></span>${esc(x.id)} <b>${esc(st)}</b></span>`);
+    });
+    $('#statusChips').innerHTML = chips.join('');
+    $('#baseUrl').textContent = BASE;
+    renderModelCards(m.data||[]);
+    renderDocModels(m.data||[]);
+    renderTaskOptions();
+    renderProfileOptions();
+  }catch(e){
+    $('#statusChips').innerHTML = `<span class="chip"><span class="dot err"></span><b>服务不可达</b></span>`;
+  }
+}
+
+const STATUS_LABEL = {verified:'已验证', experimental:'实验', migration_required:'待迁移', ready:'就绪'};
+
+function renderModelCards(models){
+  $('#modelCards').innerHTML = models.map(x=>{
+    const profiles = (capabilities && capabilities.profiles) || [];
+    const tasks = (x.tasks||[]).join('、');
+    const taskLabels = (x.tasks||[]).map(task=>({text_to_video:'文生视频',ref2av:'图片参考视频'}[task]||task)).join(' / ') || '暂无已开放任务';
+    const geom = ((capabilities && capabilities.geometries)||[]).map(g=>g[0]+'×'+g[1]).join(' / ');
+    const cls = x.status==='verified'?'ok':(x.status==='experimental'?'run':'warn');
+    return `<div style="border:1px solid var(--line2);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:var(--card2)">
+      <div class="row">
+        <b style="font-size:14px">${esc(x.name||x.id)}</b>
+        <span class="badge"><span class="dot ${cls}"></span>${esc(x.id)}</span>
+        <span class="badge"><span class="dot ${cls}"></span>${esc(STATUS_LABEL[x.status]||x.status)}</span>
+        <span class="dim small">任务：${esc(tasks)}</span>
+      </div>
+      <div class="grid g4" style="margin-top:10px;font-size:12.5px;color:var(--muted)">
+        <div>能力<br><b style="color:var(--txt)">${esc(taskLabels)}</b></div>
+        <div>几何（当前验收）<br><b style="color:var(--txt)">${esc(geom||'—')}</b></div>
+        <div>档位<br><b style="color:var(--txt)">${esc(profiles.join(' / ')||'—')}</b></div>
+        <div>时长<br><b style="color:var(--txt)">5–15 秒</b></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ 文档-模型调用方法 ============ */
+const DOCS = [
+{model:'minimax-h3 · text_to_video', workflow:'text_to_video', tasks:['text_to_video','t2v'],
+ intro:'文生视频，输出 MP4，24 fps。仅 512×320 几何已通过验收；档位 quality 至少 20 步，turbo8 固定 8 步。',
+ params:[['prompt','input','必填','非空，≤2,000 字符'],
+         ['profile','parameters','quality','quality / turbo8（以 /ready 能力为准）'],
+         ['duration_seconds','parameters','必填','5–15 秒，映射到 124/141/…/362 帧槽'],
+         ['width / height','parameters','512×320','32 的倍数，面积 ≤983,040，且需在验收几何内'],
+         ['steps','parameters','20 / 8','quality ≥20；turbo 档必须等于档位固定步数'],
+         ['seed','parameters','随机','JSON 整数']],
+ body:{model:'minimax-h3',task:'text_to_video',input:{prompt:'A red tram crossing a rainy city at night, cinematic, realistic.'},parameters:{duration_seconds:5.17,width:512,height:320,steps:20,profile:'quality',seed:12345}},
+ out:'MP4'},
+{model:'minimax-h3 · ref2av', workflow:'ref2av', tasks:['ref2av','i2v'],
+intro:'图片参考生成：先经 POST /v1/files 上传参考图片获得 file_id，references.images 最多 1 张；视频 / 音频参考尚未开放。档位和几何以 /ready 返回的 ref2av 能力为准；本示例使用 turbo8。prompt 必填，可用 &lt;Picture 1&gt; 引用素材。',
+ params:[['prompt','input','必填','非空，≤2,000 字符'],
+         ['references.images','input','[]','图片 file_id 数组，最多 1 张'],
+         ['references.videos / audios','input','[]','尚未开放（返回 UNVERIFIED_REFERENCE）'],
+         ['profile / steps','parameters','turbo8 / 8','按 /ready 返回的 ref2av 能力选择'],
+         ['duration_seconds','parameters','必填','5–15 秒，且映射帧数需在 /ready 几何范围内'],
+         ['width / height / seed','parameters','512×320 / 随机','尺寸与 seed 约束同文生视频']],
+ body:{model:'minimax-h3',task:'ref2av',input:{prompt:'Keep the identity from <Picture 1>. A cinematic close-up.',references:{images:['<file_id>'],videos:[],audios:[]}},parameters:{duration_seconds:5.17,width:512,height:320,steps:8,profile:'turbo8',seed:12345}},
+ out:'MP4'}
+];
+
+function renderDocModels(models){
+  const enabledTasks = new Set((models||[]).flatMap(x=>x.tasks||[]));
+  const docs = DOCS.filter(d=>enabledTasks.has(d.workflow));
+  $('#docModels').innerHTML = docs.map((d,i)=>{
+    const body = JSON.stringify(d.body,null,2);
+    const example = d.model.includes('ref2av')
+      ? `# 1) 上传参考图片\ncurl -X POST $BASE/v1/files -F 'file=@reference_1.png'\n# → 得到 file_id\n\n# 2) 将 file_id 填入 references 后提交\ncurl -X POST $BASE/v1/jobs -H 'Content-Type: application/json' -d '${body.replace(/'/g,"'\\''")}'`
+      : `curl -X POST $BASE/v1/jobs -H 'Content-Type: application/json' -d '${body.replace(/'/g,"'\\''")}'`;
+    return `<div style="border:1px solid var(--line2);border-radius:10px;padding:16px;margin-bottom:16px;background:var(--card2)">
+      <div class="row" style="margin-bottom:6px">
+        <h3 style="margin:0">${i+1}. ${esc(d.model)}</h3>
+        <span class="badge"><span class="dot ok"></span>${esc(d.tasks.join(' / '))}</span>
+        <span class="badge"><span class="dot ok"></span>输出 ${d.out}</span>
+      </div>
+      <p class="small muted" style="margin-bottom:10px">${d.intro}</p>
+      <table><thead><tr><th style="width:180px">字段</th><th style="width:110px">位置</th><th style="width:90px">默认</th><th>约束</th></tr></thead>
+      <tbody>${d.params.map(p=>`<tr><td class="mono">${esc(p[0])}</td><td class="mono">${esc(p[1])}</td><td>${esc(p[2])}</td><td class="muted">${esc(p[3])}</td></tr>`).join('')}</tbody></table>
+      <pre data-label="curl 调用示例"><code>${esc(example)}</code></pre>
+    </div>`;
+  }).join('');
+}
+
+/* ============ 在线试用 ============ */
+function renderProfileOptions(){
+  const task = $('#pTask').value || 'text_to_video';
+  const profiles = ((capabilities && capabilities.profiles) || ['quality'])
+    .filter(profile=>{
+      const allowed = capabilities && capabilities[profile+'_tasks'];
+      return allowed ? allowed.includes(task) : task === 'text_to_video';
+    });
+  const sel = $('#pProfile');
+  const current = sel.value;
+  sel.innerHTML = profiles.map(p=>`<option value="${esc(p)}">${esc(PROFILE_LABELS[p]||p)}</option>`).join('');
+  if(profiles.includes(current)) sel.value = current;
+  if(!profiles.includes(selectedProfile)) selectedProfile = null;
+  syncPlayForm();
+}
+
+function renderTaskOptions(){
+  const tasks = (capabilities && capabilities.tasks) || ['text_to_video'];
+  const options = [
+    ['text_to_video', 'text_to_video · 文生视频'],
+    ['ref2av', 'ref2av · 图片参考生成']
+  ].filter(([task])=>tasks.includes(task));
+  const sel = $('#pTask');
+  const current = sel.value;
+  sel.innerHTML = options.map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
+  sel.value = options.some(([value])=>value===current) ? current : (options[0]||['text_to_video'])[0];
+}
+
+let selectedProfile = null;
+function syncPlayForm(){
+  const profile = $('#pProfile').value || 'quality';
+  const isRef = $('#pTask').value === 'ref2av';
+  $('#pFilesArea').style.display = isRef ? 'block' : 'none';
+  if(selectedProfile !== profile){
+    $('#pSteps').value = PROFILE_STEPS[profile] != null ? PROFILE_STEPS[profile] : 20;
+    selectedProfile = profile;
+  }
+  $('#pSteps').min = profile === 'quality' ? '20' : String(PROFILE_STEPS[profile]||4);
+  $('#pSteps').disabled = profile !== 'quality';
+  renderFileInputs();
+}
+
+function renderFileInputs(){
+  const wrap = $('#pFiles');
+  wrap.innerHTML = `
+    <div style="border:1px solid var(--line2);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--card2)">
+      <label style="margin:0">参考图片（≤1 张）</label>
+      <input type="file" id="pf-image" class="file-input file-input-bordered" accept="image/*,.png,.jpg,.jpeg,.webp">
+      <div class="small dim" id="pf-image-list" style="margin-top:6px">${uploadedFiles.map(f=>`${esc(f.filename)} (${esc(f.file_id)})`).join('<br>')}</div>
+    </div>`;
+  const inp = $('#pf-image');
+  if(inp) inp.addEventListener('change', ()=>handleFiles(inp));
+}
+
+async function handleFiles(input){
+  const files = [...(input.files||[])];
+  if(!files.length) return;
+  if(uploadedFiles.some(f=>f.kind==='image')){ toast('参考图片已上传，如需更换请先点“重置”', true); input.value=''; return; }
+  const cur = uploadedFiles.filter(f=>f.kind==='image').length;
+  if(cur+files.length > 1){ toast('最多 1 张参考图片', true); input.value=''; return; }
+  for(const f of files.slice(0, 1)){
+    const fd = new FormData(); fd.append('file', f);
+    try{
+      const res = await jget('/v1/files', {method:'POST', body:fd});
+      uploadedFiles.push({kind:'image', file_id:res.file_id, filename:res.filename});
+      toast(`已上传 ${res.filename} → ${res.file_id}`);
+    }catch(e){ toast(`上传失败：${readDetail(e)}`, true); }
+  }
+  $('#pf-image-list').innerHTML = uploadedFiles.map(f=>`${esc(f.filename)} (${esc(f.file_id)})`).join('<br>');
+}
+
+function buildRequest(){
+  const task = $('#pTask').value;
+  const profile = $('#pProfile').value || 'quality';
+  const prompt = $('#pPrompt').value.trim();
+  if(!prompt) throw new Error('请填写提示词');
+  const input = {prompt};
+  if(task === 'ref2av'){
+    const imgs = uploadedFiles.filter(f=>f.kind==='image').map(f=>f.file_id);
+    if(!imgs.length) throw new Error('ref2av 至少需要 1 张参考图片');
+    input.references = {images:imgs, videos:[], audios:[]};
+  }
+  const d = parseFloat($('#pDur').value);
+  if(!(d>=5 && d<=15)) throw new Error('时长需在 5–15 秒之间');
+  const steps = parseInt($('#pSteps').value);
+  if(!(steps>=4 && steps<=64)) throw new Error('步数需在 4–64 之间');
+  const parameters = {width:512, height:320, duration_seconds:d, steps, profile};
+  const seedRaw = $('#pSeed').value.trim();
+  if(seedRaw !== ''){ const s = parseInt(seedRaw); if(isNaN(s)) throw new Error('seed 必须是整数'); parameters.seed = s; }
+  const options = {};
+  const pri = parseInt($('#pPriority').value);
+  if(!isNaN(pri)){ if(pri<0 || pri>10) throw new Error('优先级需在 0–10 之间'); options.priority = pri; }
+  return {model:'minimax-h3', task, input, parameters, options};
+}
+
+$('#pTask').addEventListener('change', renderProfileOptions);
+$('#pProfile').addEventListener('change', syncPlayForm);
+$('#pReset').addEventListener('click', ()=>{
+  $('#pPrompt').value=''; $('#pSeed').value=''; $('#pPriority').value='0'; $('#pDur').value='5.17';
+  uploadedFiles = [];
+  renderFileInputs();
+});
+
+$('#pSubmit').addEventListener('click', async ()=>{
+  const btn = $('#pSubmit'); btn.disabled = true;
+  $('#pErr').style.display='none';
+  try{
+    const req = buildRequest();
+    const res = await jget('/v1/jobs', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(req)});
+    toast(`任务已入队：${res.job_id}`);
+    startPoll(res.job_id, true);
+  }catch(e){ $('#pErr').textContent = '提交失败：' + readDetail(e); $('#pErr').style.display='block'; }
+  finally{ btn.disabled = false; }
+});
+
+$('#pCopyCurl').addEventListener('click', async ()=>{
+  try{
+    const req = buildRequest();
+    const text = req.task==='ref2av'
+      ? `# 1) 上传参考图片\ncurl -X POST ${BASE}/v1/files -F 'file=@reference_1.png'\n\n# 2) 提交任务\ncurl -X POST ${BASE}/v1/jobs -H 'Content-Type: application/json' -d '${JSON.stringify(req).replace(/<[^>]+>/g,'<file_id>')}'`
+      : `curl -X POST ${BASE}/v1/jobs -H 'Content-Type: application/json' -d '${JSON.stringify(req)}'`;
+    await navigator.clipboard.writeText(text);
+    toast('curl 命令已复制到剪贴板');
+  }catch(e){ toast('生成 curl 失败：'+readDetail(e), true); }
+});
+
+/* ---------- 轮询（试用区单任务） ---------- */
+function startPoll(jobId, inPlay){
+  stopPoll(jobId);
+  const tick = async ()=>{
+    try{
+      const j = await jget('/v1/jobs/'+jobId);
+      if(inPlay) renderPlay(j);
+      updateRecordRow(jobId, j);
+      if(['succeeded','failed','cancelled'].includes(j.status)){ stopPoll(jobId); if(inPlay) renderPlay(j); }
+      else pollTimers[jobId] = setTimeout(tick, 3000);
+    }catch(e){ stopPoll(jobId); if(inPlay) toast('查询任务失败：'+readDetail(e), true); }
+  };
+  pollTimers[jobId] = setTimeout(tick, 800);
+}
+function stopPoll(jobId){ clearTimeout(pollTimers[jobId]); delete pollTimers[jobId]; }
+
+function statusBadge(st){
+  const map={queued:'b-queued',starting:'b-starting',running:'b-running',succeeded:'b-succeeded',failed:'b-failed',cancelled:'b-cancelled'};
+  return `<span class="badge ${map[st]||''}"><span class="dot"></span>${esc(st)}</span>`;
+}
+
+function renderPlay(j){
+  const box = $('#plResult');
+  box.classList.add('show');
+  const badge = $('#plBadge');
+  badge.className = 'badge ' + ({queued:'b-queued',starting:'b-starting',running:'b-running',succeeded:'b-succeeded',failed:'b-failed',cancelled:'b-cancelled'}[j.status]||'');
+  badge.querySelector('.dot').className = 'dot ' + (j.status==='running'?'run':(j.status==='succeeded'?'ok':(j.status==='failed'?'err':'')));
+  $('#plStatus').textContent = j.status;
+  const body = $('#plBody');
+  if(j.status==='succeeded'){
+    const url = `${BASE}${j.result && j.result.download_url ? j.result.download_url : '/v1/jobs/'+j.id+'/result'}?v=${encodeURIComponent((j.result || {}).media_revision || j.updated_at || '')}`;
+    body.innerHTML = `<video src="${url}" controls preload="metadata"></video>`;
+    $('#plDownload').style.display=''; $('#plDownload').href=url;
+    $('#plOpen').style.display=''; $('#plOpen').href=url;
+    $('#plCancel').style.display='none';
+    $('#plLoading').style.display='none';
+  } else if(j.status==='failed'){
+    body.innerHTML = `<div class="loading" style="color:var(--err)">✗ 推理失败<br><span class="small">${esc(j.error_code||'')} ${esc(j.error_message||'')}</span></div>`;
+    $('#plLoading').style.display='none';
+    $('#plDownload').style.display='none'; $('#plOpen').style.display='none'; $('#plCancel').style.display='none';
+  } else if(j.status==='cancelled'){
+    body.innerHTML = `<div class="loading">已取消</div>`;
+    $('#plLoading').style.display='none';
+    $('#plDownload').style.display='none'; $('#plOpen').style.display='none'; $('#plCancel').style.display='none';
+  } else {
+    body.innerHTML = ''; $('#plLoading').style.display='block';
+    $('#plDownload').style.display='none'; $('#plOpen').style.display='none';
+    $('#plCancel').style.display = j.status==='queued' ? '' : 'none';
+    $('#plCancel').onclick = ()=>cancelJob(j.id);
+  }
+  const r = j.result||{};
+  const meta = [];
+  if(r.frames) meta.push(`帧数 ${r.frames} · 实际时长 ${r.actual_duration_seconds!=null?r.actual_duration_seconds.toFixed(2)+'s':'—'}`);
+  if(r.width) meta.push(`尺寸 ${r.width}×${r.height} · steps ${r.steps} · seed ${r.seed??'—'}`);
+  const t = r.timing; const g = r.gpu_memory;
+  if(t && t.total_seconds!=null) meta.push(`整单 ${fmtDur(t.total_seconds)}`);
+  if(g && g.peak_memory_used_mib!=null) meta.push(`峰值显存 ${(g.peak_memory_used_mib/1024).toFixed(0)} GiB`);
+  $('#plMeta').textContent = meta.join(' · ');
+}
+
+async function cancelJob(jobId){
+  try{
+    const r = await jget('/v1/jobs/'+jobId+':cancel', {method:'POST'});
+    toast('任务状态：'+r.status);
+    if(r.status==='cancelled') stopPoll(jobId);
+  }catch(e){ toast('取消失败：'+readDetail(e), true); }
+}
+
+/* ============ 生成记录 ============ */
+let allRecords = [];
+
+async function loadRecords(){
+  const wrap = $('#recTableWrap');
+  if(!allRecords.length) wrap.innerHTML = '<div class="loading">加载中…</div>';
+  try{
+    const data = await jget(`/v1/jobs?limit=200&offset=0`);
+    allRecords = data.items || [];
+    $('#recCount').textContent = `(${data.total})`;
+    renderRecords();
+    $('#recTableWrap').dataset.loaded='1';
+  }catch(e){
+    if(!$('#recTableWrap').dataset.loaded) wrap.innerHTML = `<div class="loading" style="color:var(--err)">加载失败：${esc(readDetail(e))}</div>`;
+    toast('刷新记录失败：'+readDetail(e), true);
+  }
+}
+
+function filtered(){
+  const task = $('#fTask').value, s = $('#fStatus').value, q = $('#fSearch').value.trim().toLowerCase();
+  let arr = allRecords;
+  if(task) arr = arr.filter(x=>x.task===task);
+  if(s) arr = arr.filter(x=>x.status===s);
+  if(q) arr = arr.filter(x=> (x.id||'').toLowerCase().includes(q)
+    || (x.prompt||'').toLowerCase().includes(q)
+    || JSON.stringify(x.request||{}).toLowerCase().includes(q));
+  return arr;
+}
+
+function paramSummary(j){
+  const p = (j.request && j.request.parameters) || {};
+  const s = [];
+  if(p.duration_seconds!=null) s.push(`dur ${p.duration_seconds}s`);
+  if(p.width) s.push(`${p.width}×${p.height}`);
+  if(p.profile) s.push(p.profile);
+  if(p.steps!=null) s.push(`steps ${p.steps}`);
+  if(p.seed!=null) s.push(`seed ${p.seed}`);
+  return s.join(' · ') || '—';
+}
+
+function renderRecords(){
+  const wrap = $('#recTableWrap');
+  const arr = filtered();
+  const total = arr.length;
+  const pages = Math.max(1, Math.ceil(total/REC_PER));
+  if(recPage>=pages) recPage = pages-1;
+  const page = arr.slice(recPage*REC_PER, (recPage+1)*REC_PER);
+  const head = `<table><thead><tr>
+    <th style="width:52px">状态</th><th style="width:140px">预览</th><th>模型 / 任务</th><th>提示词</th><th>创建时间</th><th>参数</th><th style="width:130px">操作</th>
+  </tr></thead><tbody>`;
+  const rows = page.map(j=>{
+    const r = j.result||{};
+    const hasResult = j.status==='succeeded';
+    const prompt = (j.prompt||'') || '—';
+    const params = paramSummary(j);
+    const thumbUrl = `/v1/jobs/${encodeURIComponent(j.id)}/thumbnail?v=${encodeURIComponent(r.media_revision || j.updated_at || '')}`;
+    const detailHref = `/detail.html?id=${encodeURIComponent(j.id)}`;
+    const preview = hasResult
+      ? `<div class="thumbwrap"><a href="${detailHref}" target="_blank" rel="noopener">
+          <img class="thumb" src="${thumbUrl}" loading="lazy" alt="预览">
+          <span class="playicon">预览</span>
+        </a></div>`
+      : (j.status==='queued' ? '<span class="dim small">排队中</span>' : '<span class="dim small">—</span>');
+    return `<tr class="recrow" data-id="${esc(j.id)}" data-status="${esc(j.status)}">
+      <td>${statusBadge(j.status)}</td>
+      <td>${preview}</td>
+      <td><div class="mono">${esc(j.model)}</div><div class="dim small mono">${esc(j.task)}</div></td>
+      <td><div class="promptcell" title="${esc(prompt)}">${esc(prompt)}</div>
+          ${j.status==='failed'?`<div class="small" style="color:var(--err)">${esc(j.error_code||'INFERENCE_FAILED')}</div>`:''}</td>
+      <td class="small muted">${fmt(j.created_at)}</td>
+      <td class="small muted" style="max-width:230px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(JSON.stringify((j.request&&j.request.parameters)||{}))}">${esc(params)}</div></td>
+      <td><div class="op">
+        <a class="${hasResult?'':'dim'}" data-act="dl" ${hasResult?`data-id="${esc(j.id)}"`:''}>下载</a>
+        <a class="${j.status==='queued'?'':'dim'}" data-act="cancel" ${j.status==='queued'?`data-id="${esc(j.id)}"`:''}>取消</a>
+        <a href="${detailHref}" target="_blank" rel="noopener">详情</a>
+      </div></td>
+    </tr>`;
+  }).join('');
+  const foot = page.length ? '' : '<tr><td colspan="7" class="muted" style="text-align:center;padding:24px">无匹配记录</td></tr>';
+  wrap.innerHTML = head + (rows || foot) + '</tbody></table>';
+  $('#recPager').innerHTML = `
+    <span>共 ${total} 条 · 第 ${recPage+1}/${pages} 页</span>
+    <button ${recPage===0?'disabled':''} onclick="recPage--;renderRecords()">‹ 上一页</button>
+    <button ${recPage>=pages-1?'disabled':''} onclick="recPage++;renderRecords()">下一页 ›</button>`;
+  bindRecordOps();
+}
+
+function bindRecordOps(){
+  document.querySelectorAll('#recTableWrap [data-act]').forEach(a=>{
+    const act = a.dataset.act, id = a.dataset.id;
+    if(!id){ return; }
+    a.addEventListener('click', async ()=>{
+      if(act==='dl'){ const j = allRecords.find(x=>x.id===id); window.open(BASE+(j.result&&j.result.download_url?j.result.download_url:'/v1/jobs/'+id+'/result')); }
+      else if(act==='cancel'){ await cancelJob(id); setTimeout(()=>loadRecords(),600); }
+    });
+  });
+}
+
+function updateRecordRow(jobId, j){
+  if(!$('#tab-recs').classList.contains('active')) return;
+  if(!j) return;
+  const row = document.querySelector(`#recTableWrap tr[data-id="${jobId}"]`);
+  if(!row) return;
+  row.dataset.status = j.status;
+  const td = row.querySelector('td:first-child');
+  if(td) td.innerHTML = statusBadge(j.status);
+  if(['succeeded','failed','cancelled'].includes(j.status)) renderRecords();
+}
+
+/* ============ 刷新与自动轮询 ============ */
+$('#recRefresh').addEventListener('click', ()=>{ recPage=0; loadRecords(); });
+$('#fTask').addEventListener('change', ()=>{ recPage=0; renderRecords(); });
+$('#fStatus').addEventListener('change', ()=>{ recPage=0; renderRecords(); });
+$('#fSearch').addEventListener('input', ()=>{ recPage=0; renderRecords(); });
+$('#recAuto').addEventListener('change', ()=>{ if($('#recAuto').checked) startRecTimer(); else stopRecTimer(); });
+
+function startRecTimer(){
+  stopRecTimer();
+  recTimer = setInterval(async ()=>{
+    if($('#recAuto').checked && $('#tab-recs').classList.contains('active')) await loadRecords();
+  }, 8000);
+}
+function stopRecTimer(){ clearInterval(recTimer); recTimer=null; }
+
+/* init */
+loadStatus();
+syncPlayForm();
+startRecTimer();
+setInterval(loadStatus, 30000);
+</script>
+</body>
+</html>

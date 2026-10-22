@@ -3,7 +3,9 @@
 Independent MiniMax H3 audio/video inference service for IBM POWER9 and six V100 16 GB GPUs.
 
 - Public API: **http://minixm.minapp.xin:8188** (penetration alias) or **http://minixm.minapp.xin:8190** (dedicated tunnel)
+- Interactive service page: **http://minixm.minapp.xin:8188/** or **http://minixm.minapp.xin:8190/** (Diffusers H3 text/video-reference workflow)
 - Interactive API documentation: **http://minixm.minapp.xin:8188/docs** or **http://minixm.minapp.xin:8190/docs**
+- LLM-readable API index and full guide: **/llms.txt** and **/llms-full.txt** on either API host
 - Repository: https://github.com/tans/aiserver-diffusers
 - Implementation and acceptance issue: https://github.com/tans/aiserver-diffusers/issues/1
 
@@ -18,6 +20,8 @@ Model weights are opened read-only from `/srv/models/lightx2v/h3`. POWER9 torch/
 ## API example
 
 The existing `model / task / input / parameters / options` envelope and `/v1/files`, `/v1/jobs`, status, cancel, result and thumbnail routes are retained. Duration uses the original nearest legal frame-slot rule: `5.17` seconds maps to 124 frames (actual duration 5.1667 seconds).
+
+The service page is served at `/`. Machine-readable documentation is available at `/llms.txt` (document index) and `/llms-full.txt` (request fields, limits and endpoint behavior). Query `/ready` before submitting work; it is the source of truth for currently admitted tasks, profiles and geometries.
 
 ```sh
 curl -sS http://minixm.minapp.xin:8190/v1/jobs \
