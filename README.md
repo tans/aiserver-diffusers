@@ -2,8 +2,8 @@
 
 Independent MiniMax H3 audio/video inference service for IBM POWER9 and six V100 16 GB GPUs.
 
-- Public API: **http://minixm.minapp.xin:8190**
-- Interactive API documentation: **http://minixm.minapp.xin:8190/docs**
+- Public API: **http://minixm.minapp.xin:8188** (penetration alias) or **http://minixm.minapp.xin:8190** (dedicated tunnel)
+- Interactive API documentation: **http://minixm.minapp.xin:8188/docs** or **http://minixm.minapp.xin:8190/docs**
 - Repository: https://github.com/tans/aiserver-diffusers
 - Implementation and acceptance issue: https://github.com/tans/aiserver-diffusers/issues/1
 
@@ -11,7 +11,7 @@ The verified public geometry is **512×320, 124 frames, 24 fps**, with native Di
 
 ## Isolation
 
-Server directory: `/home/minixm/AIserver-diffusers`, including its own `.venv`, SQLite queue, inputs and outputs. The original LightX2V service remains in `/home/minixm/AIserver`, public port 8189. No original code or environment package is changed.
+Server directory: `/home/minixm/AIserver-diffusers`, including its own `.venv`, SQLite queue, inputs and outputs. The original LightX2V service remains in `/home/minixm/AIserver`, public port 8189. No original code or environment package is changed. The existing 8188 reverse tunnel targets a loopback-only TCP proxy to the new API on 8190.
 
 Model weights are opened read-only from `/srv/models/lightx2v/h3`. POWER9 torch/CUDA binary packages are reused read-only through a `.pth` path; Python package writes go only into the new venv. This is not a copied, fully independent binary stack. The new public reverse tunnel is a separate root-managed unit and leaves the old tunnel unit unchanged.
 
@@ -38,7 +38,16 @@ For the base profile, set `profile` to `quality` and `steps` to 20. Unknown mode
 
 Run `scripts/bootstrap.sh` on the audited POWER9 host. Dependency pins are in `requirements.txt`; Diffusers 0.41.0 corresponds to tag commit `086bf9578c0f4acbc66e48cd1e7cc26befd9e10f`.
 
-The default enabled API and worker units are supplied under `deploy/`. The API listens on loopback 8190. The separate tunnel forwards cloud port 8190. The current deployed mode is dual TP3: worker A uses GPUs 0–2 and worker B uses GPUs 3–5 for admitted text tasks. Worker A acquires all six GPUs for separately admitted TP6 tasks, after existing three-card work drains. All generation coordinates with the old service's existing all-GPU lock, so queue waiting must be separated from actual inference timing.
+The default enabled API and worker units are supplied under `deploy/`. The API listens on loopback 8190. The separate root tunnel forwards cloud port 8190. `aiserver-diffusers-8188-proxy.service` listens only on loopback 8188 and forwards TCP to the API; the existing shared tunnel maps public 8188 to this local port. This preserves original port 8189 and the other existing tunnel mappings. Install the proxy unit with:
+
+```sh
+install -D -m 0644 deploy/aiserver-diffusers-8188-proxy.service \
+  ~/.config/systemd/user/aiserver-diffusers-8188-proxy.service
+systemctl --user daemon-reload
+systemctl --user enable --now aiserver-diffusers-8188-proxy.service
+```
+
+The current deployed mode is dual TP3: worker A uses GPUs 0–2 and worker B uses GPUs 3–5 for admitted text tasks. Worker A acquires all six GPUs for separately admitted TP6 tasks, after existing three-card work drains. All generation coordinates with the old service's existing all-GPU lock, so queue waiting must be separated from actual inference timing.
 
 A worker restart explicitly terminates its process groups and fails interrupted work; queued jobs persist in SQLite. Running cancellation reaps the stage process group. Low storage rejects new work. The cleanup timer only expires this service's terminal artifacts and retains task metadata; its current enablement is recorded in STATE.md.
 
@@ -51,7 +60,7 @@ A worker restart explicitly terminates its process groups and fails interrupted 
 
 Ten consecutive Turbo8 dual-TP3 tasks passed. Active-window throughput was 61.37 videos/hour, versus 34.16 videos/hour for a separate two-task serial TP6 comparison (about 1.80×). Per-task inference means were 113.15 and 105.34 seconds, respectively. These are short cached-prompt windows with unequal sample sizes, not hour-long capacity promises. Whole-batch timings including old-service waiting are retained separately. See [ten-job evidence](reports/dual-tp3-ten.md).
 
-Two different-prompt cold twenty-forward dual tasks passed after the documented numerical fix. Actual-forward worker SIGKILL/restart and running cancellation also passed. The first mixed workload was stopped after a reference Turbo4 visual-quality failure. Reference Turbo8 passed the controlled comparison, and a corrected twenty-job workload is active. Host reboot recovery is not yet validated.
+Two different-prompt cold twenty-forward dual tasks passed after the documented numerical fix. Actual-forward worker SIGKILL/restart and running cancellation also passed. The first mixed workload was stopped after a reference Turbo4 visual-quality failure. Reference Turbo8 passed the controlled comparison, and a corrected twenty-job workload completed with one-frame-per-video visual review. Candidate higher-resolution jobs completed but remain outside public admission. Host reboot recovery is not yet validated.
 
 Switch modes at an idle boundary (queued jobs are preserved):
 
